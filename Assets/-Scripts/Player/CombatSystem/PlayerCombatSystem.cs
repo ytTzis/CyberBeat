@@ -8,6 +8,16 @@ namespace UGG.Combat
 {
     public class PlayerCombatSystem : CharacterCombatSystemBase
     {
+        [System.Serializable]
+        private class AttackVfxMapping
+        {
+            public string stateName;
+            public GameObject vfxPrefab;
+            public Vector3 positionOffset = new Vector3(0f, 0f, 1f);
+            public Vector3 rotationOffset;
+            public float lifetime = 2f;
+        }
+
         private static readonly string[] FinalComboAttackStateNames =
         {
             "GhostSamurai_APose_Attack02_6_Inplace"
@@ -37,6 +47,13 @@ namespace UGG.Combat
 
         //允许攻击输入
         [SerializeField] private bool allowAttackInput;
+        [SerializeField] private AttackVfxMapping[] attackVfxMappings;
+        [SerializeField, Header("Attack VFX")] private GameObject attackVfxPrefab;
+        [SerializeField] private Transform attackVfxSpawnPoint;
+        [SerializeField] private Vector3 attackVfxOffset = new Vector3(0f, 0f, 1f);
+        [SerializeField] private Vector3 attackVfxRotationOffset;
+        [SerializeField] private float attackVfxLifetime = 2f;
+        [SerializeField] private Color attackVfxTintColor = new Color(1f, 0.82f, 0.12f, 1f);
 
         protected override void Awake()
         {
@@ -264,6 +281,156 @@ namespace UGG.Combat
         public void SetAllowAttackInput(bool allow) => allowAttackInput = allow;
         
         #endregion
+
+        protected override void OnAnimationAttackEvent(string hitName)
+        {
+            base.OnAnimationAttackEvent(hitName);
+            SpawnAttackVfx();
+        }
+
+        private void SpawnAttackVfx()
+        {
+            Transform spawnSource = attackVfxSpawnPoint != null ? attackVfxSpawnPoint : attackDetectionCenter;
+            if (spawnSource == null)
+            {
+                spawnSource = transform;
+            }
+
+            if (TrySpawnMappedAttackVfx(spawnSource))
+            {
+                return;
+            }
+
+            SpawnAttackVfxInstance(spawnSource, attackVfxPrefab, attackVfxOffset, attackVfxRotationOffset, attackVfxLifetime);
+        }
+
+        private bool TrySpawnMappedAttackVfx(Transform spawnSource)
+        {
+            if (attackVfxMappings == null || attackVfxMappings.Length == 0)
+            {
+                return false;
+            }
+
+            for (int i = 0; i < attackVfxMappings.Length; i++)
+            {
+                AttackVfxMapping mapping = attackVfxMappings[i];
+                if (mapping == null || string.IsNullOrEmpty(mapping.stateName) || mapping.vfxPrefab == null)
+                {
+                    continue;
+                }
+
+                if (!_animator.CheckAnimationName(mapping.stateName))
+                {
+                    continue;
+                }
+
+                SpawnAttackVfxInstance(spawnSource, mapping.vfxPrefab, mapping.positionOffset, mapping.rotationOffset, mapping.lifetime);
+                return true;
+            }
+
+            return false;
+        }
+
+        private void SpawnAttackVfxInstance(Transform spawnSource, GameObject vfxPrefab, Vector3 positionOffset, Vector3 rotationOffset, float lifetime)
+        {
+            if (vfxPrefab == null)
+            {
+                return;
+            }
+
+            Vector3 spawnPosition = spawnSource.position + transform.root.TransformDirection(positionOffset);
+            Quaternion spawnRotation = Quaternion.LookRotation(transform.root.forward, Vector3.up) * Quaternion.Euler(rotationOffset);
+
+            GameObject effectInstance = Instantiate(vfxPrefab, spawnPosition, spawnRotation);
+            DisableUnsupportedUrpChildren(effectInstance.transform);
+            ApplyAttackVfxTint(effectInstance);
+            Destroy(effectInstance, lifetime);
+        }
+
+        private void ApplyAttackVfxTint(GameObject effectInstance)
+        {
+            if (effectInstance == null)
+            {
+                return;
+            }
+
+            ParticleSystem[] particleSystems = effectInstance.GetComponentsInChildren<ParticleSystem>(true);
+            for (int i = 0; i < particleSystems.Length; i++)
+            {
+                ParticleSystem.MainModule mainModule = particleSystems[i].main;
+                ParticleSystem.MinMaxGradient startColor = mainModule.startColor;
+                startColor.color = RemapColorToTint(startColor.color, attackVfxTintColor);
+                mainModule.startColor = startColor;
+            }
+
+            Renderer[] renderers = effectInstance.GetComponentsInChildren<Renderer>(true);
+            for (int i = 0; i < renderers.Length; i++)
+            {
+                MaterialPropertyBlock propertyBlock = new MaterialPropertyBlock();
+                Renderer currentRenderer = renderers[i];
+                currentRenderer.GetPropertyBlock(propertyBlock);
+
+                Material[] sharedMaterials = currentRenderer.sharedMaterials;
+                bool hasColorOverride = false;
+                for (int materialIndex = 0; materialIndex < sharedMaterials.Length; materialIndex++)
+                {
+                    Material sharedMaterial = sharedMaterials[materialIndex];
+                    if (sharedMaterial == null)
+                    {
+                        continue;
+                    }
+
+                    if (sharedMaterial.HasProperty("_Color"))
+                    {
+                        propertyBlock.SetColor("_Color", RemapColorToTint(sharedMaterial.GetColor("_Color"), attackVfxTintColor));
+                        hasColorOverride = true;
+                    }
+
+                    if (sharedMaterial.HasProperty("_TintColor"))
+                    {
+                        propertyBlock.SetColor("_TintColor", RemapColorToTint(sharedMaterial.GetColor("_TintColor"), attackVfxTintColor));
+                        hasColorOverride = true;
+                    }
+
+                    if (sharedMaterial.HasProperty("_BaseColor"))
+                    {
+                        propertyBlock.SetColor("_BaseColor", RemapColorToTint(sharedMaterial.GetColor("_BaseColor"), attackVfxTintColor));
+                        hasColorOverride = true;
+                    }
+                }
+
+                if (hasColorOverride)
+                {
+                    currentRenderer.SetPropertyBlock(propertyBlock);
+                }
+            }
+        }
+
+        private static Color RemapColorToTint(Color source, Color tint)
+        {
+            float luminance = source.grayscale;
+            float brightness = Mathf.Lerp(0.45f, 1.35f, luminance);
+
+            return new Color(
+                Mathf.Clamp01(tint.r * brightness),
+                Mathf.Clamp01(tint.g * brightness),
+                Mathf.Clamp01(tint.b * brightness),
+                source.a * tint.a);
+        }
+
+        private static void DisableUnsupportedUrpChildren(Transform root)
+        {
+            if (root.name.Contains("Distortion"))
+            {
+                root.gameObject.SetActive(false);
+                return;
+            }
+
+            for (int i = 0; i < root.childCount; i++)
+            {
+                DisableUnsupportedUrpChildren(root.GetChild(i));
+            }
+        }
     }
 }
 
