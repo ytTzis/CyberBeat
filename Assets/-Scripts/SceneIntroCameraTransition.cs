@@ -37,6 +37,11 @@ public class SceneIntroCameraTransition : MonoBehaviour
     private Coroutine transitionCoroutine;
     private Coroutine delayedPlayCoroutine;
 
+    public bool IsTransitioning => transitionCoroutine != null;
+    public bool ExpectedInputEnabled => IsTransitioning ? originalInputEnabled : characterInputSystem != null && characterInputSystem.enabled;
+    public bool ExpectedTpCameraEnabled => IsTransitioning ? originalTpCameraEnabled : tpCameraController != null && tpCameraController.enabled;
+    public bool ExpectedSimpleCameraEnabled => IsTransitioning ? originalSimpleCameraEnabled : simpleCameraController != null && simpleCameraController.enabled;
+
     private void Awake()
     {
         ResolveReferences();

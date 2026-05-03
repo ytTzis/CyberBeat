@@ -58,12 +58,23 @@ namespace UGG.Combat
 
             if (counts > 0)
             {
+                HashSet<IDamagar> hitTargets = new HashSet<IDamagar>();
+
                 for (int i = 0; i < counts; i++)
                 {
-                    if (attackDetectionTargets[i].TryGetComponent(out IDamagar damagar))
+                    Collider attackTarget = attackDetectionTargets[i];
+                    if (attackTarget == null)
                     {
-                        damagar.TakeDamager(GetCurrentAttackDamage(), hitName, transform.root.transform);
+                        continue;
                     }
+
+                    IDamagar damagar = attackTarget.GetComponentInParent<IDamagar>();
+                    if (damagar == null || !hitTargets.Add(damagar))
+                    {
+                        continue;
+                    }
+
+                    damagar.TakeDamager(GetCurrentAttackDamage(), hitName, transform.root.transform);
                 }
             }
         }

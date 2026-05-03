@@ -21,12 +21,7 @@ public class FirstSceneButtonFeedback : MonoBehaviour, IPointerDownHandler, IPoi
     {
         if (target == null)
         {
-            target = GetComponentInChildren<RectTransform>();
-
-            if (target == transform)
-            {
-                target = null;
-            }
+            target = transform as RectTransform;
         }
 
         desiredScale = normalScale;

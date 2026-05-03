@@ -2163,6 +2163,7 @@ MonoBehaviour:
   animationMoveMult: 1.5
   skills:
   - {fileID: 11400000, guid: 1fb622bc5afc9c840957e7202a562f14, type: 2}
+  - {fileID: 11400000, guid: 58d84f0e64e94318812d0f6348e539aa, type: 2}
 --- !u!1 &4800186396328071394
 GameObject:
   m_ObjectHideFlags: 0

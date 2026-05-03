@@ -30,7 +30,7 @@ public class AICombat : StateActionSO
     {
         if(currentSkill == null)
         {
-            //Èç¹ûµ±Ç°Ã»¼¼ÄÜ ¾ÍÖ´ĞĞAIÒÆ¶¯º¯Êı
+            //å¦‚æœå½“å‰æ²¡æŠ€èƒ½ å°±æ‰§è¡ŒAIç§»åŠ¨å‡½æ•°
             NoCombatMove();
             GetSkill();
         }
@@ -49,13 +49,13 @@ public class AICombat : StateActionSO
     {
         if(currentSkill == null)
         {
-            currentSkill = _combatSystem.GetAnDoneSkill();
+            currentSkill = _combatSystem.GetNextDoneSkill();
         }
     }
 
     private void NoCombatMove()
     {
-        //Èç¹û¶¯»­´¦ÓÚMotion×´Ì¬
+        //å¦‚æœåŠ¨ç”»å¤„äºMotionçŠ¶æ€
         if (_animator.CheckAnimationTag("Motion"))
         {
             if (_combatSystem.GetCurrentTargetDistance() < 2f + 0.1f)

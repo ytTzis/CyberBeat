@@ -4788,7 +4788,7 @@ MonoBehaviour:
   attackDetectionRang: 1
   enemyLayer:
     serializedVersion: 2
-    m_Bits: 1024
+    m_Bits: 1152
   currentTarget: {fileID: 0}
   attackMoveMult: 3
   detectionCenter: {fileID: 3191567287176109791}

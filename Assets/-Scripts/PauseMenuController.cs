@@ -13,23 +13,33 @@ public class PauseMenuController : MonoBehaviour
     private const string MusicSliderObjectName = "MusicUI";
     private const string SensitivitySliderObjectName = "SensitivityUI";
     private const string NonCombatUiObjectName = "Heartrate";
+    private const string RetryButtonObjectName = "Retry";
+    private const string QuitButtonObjectName = "Quit";
     private const float SliderCenterValue = 0.5f;
 
     [SerializeField] private GameObject menuPanel;
+    [SerializeField] private GameObject gameOverPanel;
     [SerializeField] private PlayerHealthSystem playerHealth;
     [SerializeField] private Slider musicSlider;
     [SerializeField] private Slider sensitivitySlider;
     [SerializeField] private TMP_Text musicValueText;
     [SerializeField] private TMP_Text sensitivityValueText;
     [SerializeField] private GameObject nonCombatUIRoot;
+    [SerializeField] private float deathMenuDelay = 0.75f;
+    [SerializeField] private float deathMenuFadeDuration = 1f;
+    [SerializeField] private Button gameOverRetryButton;
+    [SerializeField] private Button gameOverQuitButton;
 
     private bool menuOpen;
     private bool deathMenuShown;
     private CanvasGroup menuCanvasGroup;
+    private CanvasGroup gameOverCanvasGroup;
     private bool hideWithCanvasGroup;
+    private bool hideGameOverWithCanvasGroup;
     private CanvasGroup nonCombatUICanvasGroup;
     private TP_CameraController tpCameraController;
     private UnityTemplateProjects.SimpleCameraController simpleCameraController;
+    private SceneIntroCameraTransition sceneIntroCameraTransition;
     private StarterAssetsInputs starterAssetsInputs;
     private PlayerCombatSystem playerCombatSystem;
     private CharacterInputSystem characterInputSystem;
@@ -40,6 +50,7 @@ public class PauseMenuController : MonoBehaviour
     private bool combatEnabledBeforeMenu;
     private bool inputEnabledBeforeMenu;
     private Coroutine restoreGameplayCoroutine;
+    private Coroutine deathMenuCoroutine;
     private float baseMusicVolume;
     private float baseMouseSensitivity;
 
@@ -49,12 +60,15 @@ public class PauseMenuController : MonoBehaviour
         deathMenuShown = false;
         tpCameraController = FindObjectOfType<TP_CameraController>(true);
         simpleCameraController = FindObjectOfType<UnityTemplateProjects.SimpleCameraController>(true);
+        sceneIntroCameraTransition = FindObjectOfType<SceneIntroCameraTransition>(true);
         starterAssetsInputs = FindObjectOfType<StarterAssetsInputs>(true);
         playerCombatSystem = FindObjectOfType<PlayerCombatSystem>(true);
         characterInputSystem = FindObjectOfType<CharacterInputSystem>(true);
+        TryAutoBindPlayerHealth();
         baseMusicVolume = AudioListener.volume;
         baseMouseSensitivity = tpCameraController != null ? tpCameraController.mouseInputSpeed : 0.1f;
         ResolveNonCombatUIRoot();
+        ResolveGameOverButtons();
 
         if (menuPanel != null)
         {
@@ -70,10 +84,29 @@ public class PauseMenuController : MonoBehaviour
                 }
             }
 
+            ConfigureMenuCanvasGroup(0f, false);
             SetMenuVisible(false);
         }
 
+        if (gameOverPanel != null)
+        {
+            hideGameOverWithCanvasGroup = true;
+
+            gameOverCanvasGroup = gameOverPanel.GetComponent<CanvasGroup>();
+
+            if (gameOverCanvasGroup == null)
+            {
+                gameOverCanvasGroup = gameOverPanel.AddComponent<CanvasGroup>();
+            }
+
+            gameOverPanel.SetActive(true);
+            ConfigureGameOverCanvasGroup(0f, false);
+            gameOverPanel.SetActive(false);
+        }
+
         BindSettingsSliders();
+        BindGameOverButtons();
+        EnsureGameOverButtonFeedback();
     }
 
     private void Update()
@@ -81,6 +114,7 @@ public class PauseMenuController : MonoBehaviour
         if (!deathMenuShown && playerHealth != null && playerHealth.IsDead())
         {
             deathMenuShown = true;
+            BeginDeathMenuSequence();
         }
 
         if (menuOpen)
@@ -89,7 +123,7 @@ public class PauseMenuController : MonoBehaviour
             Cursor.visible = true;
         }
 
-        if (!deathMenuShown && Input.GetKeyDown(KeyCode.Tab))
+        if (!deathMenuShown && !IsIntroTransitionActive() && Input.GetKeyDown(KeyCode.Tab))
         {
             if (menuOpen) CloseMenu();
             else OpenMenu();
@@ -98,6 +132,11 @@ public class PauseMenuController : MonoBehaviour
 
     public void OpenMenu()
     {
+        if (deathMenuShown)
+        {
+            return;
+        }
+
         if (restoreGameplayCoroutine != null)
         {
             StopCoroutine(restoreGameplayCoroutine);
@@ -106,12 +145,18 @@ public class PauseMenuController : MonoBehaviour
 
         menuOpen = true;
         SetMenuVisible(true);
+        ConfigureMenuCanvasGroup(1f, true);
         Time.timeScale = 0f;
         ReleaseCursorControl();
     }
 
     public void CloseMenu()
     {
+        if (deathMenuShown)
+        {
+            return;
+        }
+
         menuOpen = false;
         SetMenuVisible(false);
         Time.timeScale = 1f;
@@ -126,6 +171,11 @@ public class PauseMenuController : MonoBehaviour
 
     public void ContinueGame()
     {
+        if (deathMenuShown)
+        {
+            return;
+        }
+
         CloseMenu();
     }
 
@@ -154,19 +204,19 @@ public class PauseMenuController : MonoBehaviour
 
         if (characterInputSystem != null)
         {
-            inputEnabledBeforeMenu = characterInputSystem.enabled;
+            inputEnabledBeforeMenu = GetExpectedInputEnabledForMenu();
             characterInputSystem.enabled = false;
         }
 
         if (tpCameraController != null)
         {
-            tpCameraEnabledBeforeMenu = tpCameraController.enabled;
+            tpCameraEnabledBeforeMenu = GetExpectedTpCameraEnabledForMenu();
             tpCameraController.enabled = false;
         }
 
         if (simpleCameraController != null)
         {
-            simpleCameraEnabledBeforeMenu = simpleCameraController.enabled;
+            simpleCameraEnabledBeforeMenu = GetExpectedSimpleCameraEnabledForMenu();
             simpleCameraController.enabled = false;
         }
 
@@ -276,6 +326,40 @@ public class PauseMenuController : MonoBehaviour
         slider.onValueChanged.AddListener(onValueChanged);
     }
 
+    private void BindGameOverButtons()
+    {
+        if (gameOverRetryButton != null)
+        {
+            gameOverRetryButton.onClick.RemoveListener(RetryGame);
+            gameOverRetryButton.onClick.AddListener(RetryGame);
+        }
+
+        if (gameOverQuitButton != null)
+        {
+            gameOverQuitButton.onClick.RemoveListener(QuitGame);
+            gameOverQuitButton.onClick.AddListener(QuitGame);
+        }
+    }
+
+    private void EnsureGameOverButtonFeedback()
+    {
+        AddButtonFeedback(gameOverRetryButton);
+        AddButtonFeedback(gameOverQuitButton);
+    }
+
+    private void AddButtonFeedback(Button button)
+    {
+        if (button == null)
+        {
+            return;
+        }
+
+        if (button.GetComponent<FirstSceneButtonFeedback>() == null)
+        {
+            button.gameObject.AddComponent<FirstSceneButtonFeedback>();
+        }
+    }
+
     private Slider FindSliderByName(string objectName)
     {
         Transform searchRoot = menuPanel != null ? menuPanel.transform : transform;
@@ -346,6 +430,113 @@ public class PauseMenuController : MonoBehaviour
         menuPanel.SetActive(visible);
     }
 
+    private void BeginDeathMenuSequence()
+    {
+        if (deathMenuCoroutine != null)
+        {
+            StopCoroutine(deathMenuCoroutine);
+        }
+
+        deathMenuCoroutine = StartCoroutine(ShowDeathMenuSequence());
+    }
+
+    private IEnumerator ShowDeathMenuSequence()
+    {
+        if (restoreGameplayCoroutine != null)
+        {
+            StopCoroutine(restoreGameplayCoroutine);
+            restoreGameplayCoroutine = null;
+        }
+
+        menuOpen = true;
+        SetGameOverVisible(true);
+        ConfigureGameOverCanvasGroup(0f, false);
+        ReleaseCursorControl();
+
+        if (deathMenuDelay > 0f)
+        {
+            yield return new WaitForSecondsRealtime(deathMenuDelay);
+        }
+
+        Time.timeScale = 0f;
+
+        float duration = Mathf.Max(0.01f, deathMenuFadeDuration);
+        float elapsed = 0f;
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float alpha = Mathf.Clamp01(elapsed / duration);
+            ConfigureGameOverCanvasGroup(alpha, false);
+            yield return null;
+        }
+
+        ConfigureGameOverCanvasGroup(1f, true);
+        deathMenuCoroutine = null;
+    }
+
+    private void ConfigureMenuCanvasGroup(float alpha, bool interactive)
+    {
+        if (menuCanvasGroup == null)
+        {
+            return;
+        }
+
+        menuCanvasGroup.alpha = alpha;
+        menuCanvasGroup.interactable = interactive;
+        menuCanvasGroup.blocksRaycasts = interactive;
+    }
+
+    private void ConfigureGameOverCanvasGroup(float alpha, bool interactive)
+    {
+        if (gameOverCanvasGroup == null)
+        {
+            return;
+        }
+
+        gameOverCanvasGroup.alpha = alpha;
+        gameOverCanvasGroup.interactable = interactive;
+        gameOverCanvasGroup.blocksRaycasts = interactive;
+    }
+
+    private void ResolveGameOverButtons()
+    {
+        if (gameOverPanel == null)
+        {
+            return;
+        }
+
+        if (gameOverRetryButton == null)
+        {
+            Transform retryTransform = FindChildRecursive(gameOverPanel.transform, RetryButtonObjectName);
+            gameOverRetryButton = retryTransform != null ? retryTransform.GetComponent<Button>() : null;
+        }
+
+        if (gameOverQuitButton == null)
+        {
+            Transform quitTransform = FindChildRecursive(gameOverPanel.transform, QuitButtonObjectName);
+            gameOverQuitButton = quitTransform != null ? quitTransform.GetComponent<Button>() : null;
+        }
+    }
+
+
+    private void SetGameOverVisible(bool visible)
+    {
+        if (gameOverPanel == null)
+        {
+            return;
+        }
+
+        gameOverPanel.SetActive(visible);
+
+        if (hideGameOverWithCanvasGroup && gameOverCanvasGroup != null)
+        {
+            gameOverCanvasGroup.alpha = visible ? 1f : 0f;
+            gameOverCanvasGroup.interactable = visible;
+            gameOverCanvasGroup.blocksRaycasts = visible;
+        }
+    }
+
     private void ResolveNonCombatUIRoot()
     {
         if (nonCombatUIRoot == null)
@@ -380,5 +571,50 @@ public class PauseMenuController : MonoBehaviour
 
         nonCombatUICanvasGroup.interactable = enabled;
         nonCombatUICanvasGroup.blocksRaycasts = enabled;
+    }
+
+    private void TryAutoBindPlayerHealth()
+    {
+        if (playerHealth != null)
+        {
+            return;
+        }
+
+        playerHealth = FindFirstObjectByType<PlayerHealthSystem>();
+    }
+
+    private bool GetExpectedInputEnabledForMenu()
+    {
+        if (sceneIntroCameraTransition != null)
+        {
+            return sceneIntroCameraTransition.ExpectedInputEnabled;
+        }
+
+        return characterInputSystem != null && characterInputSystem.enabled;
+    }
+
+    private bool GetExpectedTpCameraEnabledForMenu()
+    {
+        if (sceneIntroCameraTransition != null)
+        {
+            return sceneIntroCameraTransition.ExpectedTpCameraEnabled;
+        }
+
+        return tpCameraController != null && tpCameraController.enabled;
+    }
+
+    private bool GetExpectedSimpleCameraEnabledForMenu()
+    {
+        if (sceneIntroCameraTransition != null)
+        {
+            return sceneIntroCameraTransition.ExpectedSimpleCameraEnabled;
+        }
+
+        return simpleCameraController != null && simpleCameraController.enabled;
+    }
+
+    private bool IsIntroTransitionActive()
+    {
+        return sceneIntroCameraTransition != null && sceneIntroCameraTransition.IsTransitioning;
     }
 }
