@@ -4,6 +4,8 @@ using UnityEngine.UI;
 
 public class SceneIntroCameraTransition : MonoBehaviour
 {
+    private static bool forcePlayNextIntro;
+
     [SerializeField, InspectorName("Play On Start")] private bool playOnStart = true;
     [SerializeField, InspectorName("Target")] private Transform target;
     [SerializeField, InspectorName("Camera Transform")] private Transform cameraTransform;
@@ -42,6 +44,11 @@ public class SceneIntroCameraTransition : MonoBehaviour
     public bool ExpectedTpCameraEnabled => IsTransitioning ? originalTpCameraEnabled : tpCameraController != null && tpCameraController.enabled;
     public bool ExpectedSimpleCameraEnabled => IsTransitioning ? originalSimpleCameraEnabled : simpleCameraController != null && simpleCameraController.enabled;
 
+    public static void RequestPlayOnNextSceneLoad()
+    {
+        forcePlayNextIntro = true;
+    }
+
     private void Awake()
     {
         ResolveReferences();
@@ -49,7 +56,10 @@ public class SceneIntroCameraTransition : MonoBehaviour
 
     private void Start()
     {
-        if (playOnStart)
+        bool shouldPlayOnStart = playOnStart || forcePlayNextIntro;
+        forcePlayNextIntro = false;
+
+        if (shouldPlayOnStart)
         {
             delayedPlayCoroutine = StartCoroutine(PlayIntroWhenReady());
         }

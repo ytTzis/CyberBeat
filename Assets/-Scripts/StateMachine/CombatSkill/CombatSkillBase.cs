@@ -1,4 +1,4 @@
-using System.Collections;
+ï»¿using System.Collections;
 using System.Collections.Generic;
 using UGG.Move;
 using UnityEngine;
@@ -21,7 +21,7 @@ public abstract class CombatSkillBase : ScriptableObject
     protected int runID = Animator.StringToHash("Run");
 
     /// <summary>
-    /// µ÷ÓÃ¼¼ÄÜ
+    /// è°ƒç”¨æŠ€èƒ½
     /// </summary>
     public abstract void InvokeSkill();
 
@@ -34,13 +34,13 @@ public abstract class CombatSkillBase : ScriptableObject
 
     public void ResetSkill()
     {
-        //¼¼ÄÜCD
-        //´Ó¶ÔÏó³ØÄÃÒ»¸ö¼ÆÊ±Æ÷ Í¨¹ıÄÃ³öÀ´µÄ¼ÆÊ±Æ÷»ñÈ¡Ëü¼ÆÊ±½Å±¾ÖĞµÄ´´½¨¼ÆÊ±Æ÷º¯Êı
-        //µ±´«ÈëµÄµÄÊ±¼äµİ¼õÎª0Ê± ÄÚ²¿»áÖ´ĞĞÎ¯ÍĞ£ºskillIsDone=true
+        //æŠ€èƒ½CD
+        //ä»å¯¹è±¡æ± æ‹¿ä¸€ä¸ªè®¡æ—¶å™¨ é€šè¿‡æ‹¿å‡ºæ¥çš„è®¡æ—¶å™¨è·å–å®ƒè®¡æ—¶è„šæœ¬ä¸­çš„åˆ›å»ºè®¡æ—¶å™¨å‡½æ•°
+        //å½“ä¼ å…¥çš„çš„æ—¶é—´é€’å‡ä¸º0æ—¶ å†…éƒ¨ä¼šæ‰§è¡Œå§”æ‰˜ï¼šskillIsDone=true
         GameObjectPoolSystem.Instance.TakeGameObject("Timer").GetComponent<Timer>().CreateTime(skillCDTime, () => skillIsDone = true, false);
     }
 
-    #region ½Ó¿Ú
+    #region æ¥å£
 
     public void InitSkill(Animator _animator, AICombatSystem _combat, CharacterMovementBase _movement)
     {
@@ -57,5 +57,8 @@ public abstract class CombatSkillBase : ScriptableObject
 
     public void SetSkillIsDone(bool done) => skillIsDone = done;
 
+    public float GetSkillUseDistance() => skillUseDistance;
+
     #endregion
 }
+

@@ -1,9 +1,8 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UGG.Combat;
 using UGG.Health;
-using UnityEngine.Rendering.PostProcessing;
 
 public class AICombatSystem : CharacterCombatSystemBase
 {
@@ -22,9 +21,22 @@ public class AICombatSystem : CharacterCombatSystemBase
     private int lockOnID = Animator.StringToHash("LockOn");
 
     [SerializeField] private float animationMoveMult;
+    [SerializeField, Header("Jump Attack Assist")] private string assistedGapCloseSkillName = "JumpAttack04_1";
+    [SerializeField, Min(0f)] private float assistedGapCloseMoveSpeed = 2.6f;
+    [SerializeField, Range(0f, 1f)] private float assistedGapCloseEndNormalizedTime = 0.55f;
+    [SerializeField, Min(0f)] private float assistedGapCloseRangeBuffer = 0.15f;
 
     [SerializeField, Header("Skills")] private List<CombatSkillBase> skills = new List<CombatSkillBase>();
+    [SerializeField, Header("Skill Variation")] private bool useRandomSkillSelection = true;
+    [SerializeField, Range(0f, 1f)] private float repeatSkillWeightMultiplier = 0.2f;
+    [SerializeField, Range(0f, 1f)] private float recentSkillWeightMultiplier = 0.55f;
+    [SerializeField, Min(0)] private int recentSkillMemory = 2;
+    [SerializeField, Min(0.1f)] private float distancePreferenceRange = 2.5f;
+    [SerializeField, Header("Context Preference")] private string longRangePreferredSkillName = "JumpAttack04_1";
+    [SerializeField, Min(0f)] private float longRangeThreshold = 3.6f;
+    [SerializeField, Min(1f)] private float longRangePreferredSkillWeightMultiplier = 2.5f;
     private int nextSkillIndex;
+    private readonly List<int> recentSkillIds = new List<int>();
 
     private void Start()
     {
@@ -124,7 +136,34 @@ public class AICombatSystem : CharacterCombatSystemBase
         if (_animator.CheckAnimationTag("Attack"))
         {
             _characterMovementBase.CharacterMoveInterface(transform.root.forward, _animator.GetFloat(animationMoveID) * animationMoveMult, true);
+            TryAssistJumpAttackGapClose();
         }
+    }
+
+    private void TryAssistJumpAttackGapClose()
+    {
+        if (currentTarget == null || string.IsNullOrEmpty(assistedGapCloseSkillName))
+        {
+            return;
+        }
+
+        if (!_animator.CheckAnimationName(assistedGapCloseSkillName))
+        {
+            return;
+        }
+
+        if (_animator.GetCurrentAnimatorStateInfo(0).normalizedTime > assistedGapCloseEndNormalizedTime)
+        {
+            return;
+        }
+
+        float requiredHitDistance = attackDetectionRang + assistedGapCloseRangeBuffer;
+        if (GetCurrentTargetDistance() <= requiredHitDistance)
+        {
+            return;
+        }
+
+        _characterMovementBase.CharacterMoveInterface(GetDirectionForTarget(), assistedGapCloseMoveSpeed, true);
     }
 
     private void OnAnimatorActionAutoLockON()
@@ -273,6 +312,11 @@ public class AICombatSystem : CharacterCombatSystemBase
             return null;
         }
 
+        if (useRandomSkillSelection)
+        {
+            return GetRandomDoneSkill();
+        }
+
         for (int i = 0; i < skills.Count; i++)
         {
             int skillIndex = (nextSkillIndex + i) % skills.Count;
@@ -282,10 +326,102 @@ public class AICombatSystem : CharacterCombatSystemBase
             }
 
             nextSkillIndex = (skillIndex + 1) % skills.Count;
+            RememberSkill(skills[skillIndex]);
             return skills[skillIndex];
         }
 
         return null;
+    }
+
+    private CombatSkillBase GetRandomDoneSkill()
+    {
+        List<CombatSkillBase> availableSkills = new List<CombatSkillBase>();
+        List<float> weights = new List<float>();
+        float totalWeight = 0f;
+        float targetDistance = currentTarget != null ? GetCurrentTargetDistance() : 0f;
+        int lastSkillId = recentSkillIds.Count > 0 ? recentSkillIds[recentSkillIds.Count - 1] : -1;
+
+        for (int i = 0; i < skills.Count; i++)
+        {
+            CombatSkillBase skill = skills[i];
+            if (!skill.GetSkillIsDone())
+            {
+                continue;
+            }
+
+            float weight = 1f;
+
+            if (skill.GetSkillID() == lastSkillId)
+            {
+                weight *= repeatSkillWeightMultiplier;
+            }
+            else if (recentSkillIds.Contains(skill.GetSkillID()))
+            {
+                weight *= recentSkillWeightMultiplier;
+            }
+
+            if (currentTarget != null)
+            {
+                float distanceDelta = Mathf.Abs(targetDistance - skill.GetSkillUseDistance());
+                float distanceBonus = Mathf.Clamp01(1f - (distanceDelta / distancePreferenceRange));
+                weight *= 1f + distanceBonus;
+
+                if (targetDistance >= longRangeThreshold &&
+                    !string.IsNullOrEmpty(longRangePreferredSkillName) &&
+                    skill.GetSkillName() == longRangePreferredSkillName)
+                {
+                    weight *= longRangePreferredSkillWeightMultiplier;
+                }
+            }
+
+            if (weight <= 0f)
+            {
+                continue;
+            }
+
+            availableSkills.Add(skill);
+            weights.Add(weight);
+            totalWeight += weight;
+        }
+
+        if (availableSkills.Count == 0)
+        {
+            return null;
+        }
+
+        float randomPoint = Random.Range(0f, totalWeight);
+        float accumulatedWeight = 0f;
+
+        for (int i = 0; i < availableSkills.Count; i++)
+        {
+            accumulatedWeight += weights[i];
+            if (randomPoint > accumulatedWeight)
+            {
+                continue;
+            }
+
+            RememberSkill(availableSkills[i]);
+            return availableSkills[i];
+        }
+
+        CombatSkillBase fallbackSkill = availableSkills[availableSkills.Count - 1];
+        RememberSkill(fallbackSkill);
+        return fallbackSkill;
+    }
+
+    private void RememberSkill(CombatSkillBase skill)
+    {
+        if (skill == null)
+        {
+            return;
+        }
+
+        recentSkillIds.Add(skill.GetSkillID());
+
+        while (recentSkillIds.Count > recentSkillMemory)
+        {
+            recentSkillIds.RemoveAt(0);
+        }
     }
 
     public CombatSkillBase GetSkillUseName(string name)
@@ -312,7 +448,8 @@ public class AICombatSystem : CharacterCombatSystemBase
 
     #endregion
 
-    public float GetCurrentTargetDistance() => Vector3.Distance(currentTarget.position, transform.root.position);
+    public float GetCurrentTargetDistance() => currentTarget == null ? float.MaxValue : Vector3.Distance(currentTarget.position, transform.root.position);
 
-    public Vector3 GetDirectionForTarget() => (currentTarget.position - transform.root.position).normalized;
+    public Vector3 GetDirectionForTarget() => currentTarget == null ? transform.root.forward : (currentTarget.position - transform.root.position).normalized;
 }
+
