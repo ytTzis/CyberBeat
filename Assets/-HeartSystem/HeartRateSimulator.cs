@@ -77,12 +77,7 @@ public class HeartRateSimulator : MonoBehaviour
 
     private void Update()
     {
-        HandleManualAdjust();
-
-        if (useSimulation)
-        {
-            SimulateNaturalFluctuation();
-        }
+        UpdateHeartRateFromRealtimeSource();
 
         updateTimer += Time.deltaTime;
 
@@ -98,6 +93,15 @@ public class HeartRateSimulator : MonoBehaviour
         }
 
         UpdateDebugUI();
+    }
+
+    private void UpdateHeartRateFromRealtimeSource()
+    {
+        int realtimeHeartRate = hyperateSocket.CurrentHeartRate;
+        if (realtimeHeartRate > 0)
+        {
+            currentHeartRate = Mathf.Clamp(realtimeHeartRate, minHeartRate, maxHeartRate);
+        }
     }
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
@@ -122,25 +126,6 @@ public class HeartRateSimulator : MonoBehaviour
                 return;
             }
         }
-    }
-
-    private void HandleManualAdjust()
-    {
-        float delta = 0f;
-
-        if (Input.GetKey(increaseKey))
-            delta += adjustPerSecond * Time.deltaTime;
-
-        if (Input.GetKey(decreaseKey))
-            delta -= adjustPerSecond * Time.deltaTime;
-
-        currentHeartRate = Mathf.Clamp(currentHeartRate + delta, minHeartRate, maxHeartRate);
-    }
-
-    private void SimulateNaturalFluctuation()
-    {
-        float noise = Random.Range(-0.8f, 0.8f);
-        currentHeartRate = Mathf.Clamp(currentHeartRate + noise * Time.deltaTime, minHeartRate, maxHeartRate);
     }
 
     private void TickOneSecond()

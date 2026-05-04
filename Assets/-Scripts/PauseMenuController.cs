@@ -68,6 +68,7 @@ public class PauseMenuController : MonoBehaviour
         baseMusicVolume = AudioListener.volume;
         baseMouseSensitivity = tpCameraController != null ? tpCameraController.mouseInputSpeed : 0.1f;
         ResolveNonCombatUIRoot();
+        ResolveGameOverPanel();
         ResolveGameOverButtons();
 
         if (menuPanel != null)
@@ -519,6 +520,20 @@ public class PauseMenuController : MonoBehaviour
         }
     }
 
+    private void ResolveGameOverPanel()
+    {
+        if (gameOverPanel != null)
+        {
+            return;
+        }
+
+        Transform searchRoot = menuPanel != null ? menuPanel.transform : transform;
+        Transform panelTransform = FindChildRecursive(searchRoot, "GameOver");
+        if (panelTransform != null)
+        {
+            gameOverPanel = panelTransform.gameObject;
+        }
+    }
 
     private void SetGameOverVisible(bool visible)
     {
