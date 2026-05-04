@@ -6,6 +6,13 @@ using UnityEngine;
 [AddComponentMenu("心率可视化/战斗心率可视化控制器")]
 public class CombatHeartRateVisualizationController : MonoBehaviour
 {
+    private enum LightStressState
+    {
+        Normal,
+        RisingStress,
+        HighStress
+    }
+
     [Header("场景引用")]
     [SerializeField, InspectorName("玩家战斗系统")] private PlayerCombatSystem playerCombatSystem;
     [SerializeField, InspectorName("玩家生命系统")] private PlayerHealthSystem playerHealthSystem;
@@ -13,6 +20,7 @@ public class CombatHeartRateVisualizationController : MonoBehaviour
     [SerializeField, InspectorName("主方向光")] private Light mainDirectionalLight;
     [SerializeField, InspectorName("非战斗UI根节点")] private GameObject nonCombatUIRoot;
     [SerializeField, InspectorName("战斗UI根节点")] private GameObject combatUIRoot;
+    [SerializeField, InspectorName("心率压力状态控制器")] private HeartRateStateController heartRateStateController;
 
     [Header("战斗检测")]
     [SerializeField, InspectorName("敌人感知器")] private AICombatSystem[] enemySensors;
@@ -22,6 +30,9 @@ public class CombatHeartRateVisualizationController : MonoBehaviour
     [SerializeField, InspectorName("启用主方向光响应")] private bool affectMainDirectionalLight = true;
     [SerializeField, InspectorName("启用灯组响应")] private bool affectResponsiveLights = true;
     [SerializeField, InspectorName("响应灯组")] private Light[] responsiveLights;
+
+    [Header("心率压力灯光颜色")]
+    [SerializeField, InspectorName("非战斗也应用压力颜色")] private bool applyStressColorOutsideCombat = true;
 
     [Header("生命值颜色阶段")]
     [SerializeField, InspectorName("高生命颜色")] private Color highHealthColor = new Color(0.15f, 0.95f, 0.85f);
@@ -45,6 +56,12 @@ public class CombatHeartRateVisualizationController : MonoBehaviour
     [Header("调试战斗状态")]
     [SerializeField, InspectorName("使用调试战斗状态")] private bool useDebugCombatState;
     [SerializeField, InspectorName("调试为战斗中")] private bool debugIsInCombat;
+
+    [Header("手动压力状态调试")]
+    [SerializeField, InspectorName("启用手动压力状态")] private bool useDebugHeartRateState;
+    [SerializeField, InspectorName("手动压力状态")] private LightStressState debugHeartRateState = LightStressState.Normal;
+    [SerializeField, InspectorName("当前灯光压力状态")] private LightStressState currentHeartRateState = LightStressState.Normal;
+    [SerializeField, InspectorName("当前灯光颜色")] private Color currentAppliedColor = Color.green;
 
     private Color defaultLightColor;
     private float defaultLightIntensity;
@@ -84,6 +101,16 @@ public class CombatHeartRateVisualizationController : MonoBehaviour
         if (playerHealthSystem == null)
         {
             playerHealthSystem = FindFirstObjectByType<PlayerHealthSystem>();
+        }
+
+        if (heartRateStateController == null)
+        {
+            heartRateStateController = HeartRateStateController.Instance;
+        }
+
+        if (heartRateStateController == null)
+        {
+            heartRateStateController = FindFirstObjectByType<HeartRateStateController>(FindObjectsInactive.Include);
         }
 
         if (playerRoot == null && playerCombatSystem != null)
@@ -256,12 +283,13 @@ public class CombatHeartRateVisualizationController : MonoBehaviour
 
     private void UpdateLights(bool isInCombat)
     {
-        Color targetColor = GetCombatColorFromHealth();
+        Color targetColor = GetCombatColorFromHeartRateState();
         float pulseValue = GetPulseValueFromHeartRate();
         float mainLightTargetIntensity = combatBaseIntensity + pulseValue * pulseIntensityAmount;
+        bool shouldApplyStressColor = isInCombat || applyStressColorOutsideCombat;
 
-        UpdateMainDirectionalLight(isInCombat, targetColor, mainLightTargetIntensity);
-        UpdateResponsiveLights(isInCombat, targetColor, pulseValue);
+        UpdateMainDirectionalLight(shouldApplyStressColor, targetColor, mainLightTargetIntensity);
+        UpdateResponsiveLights(shouldApplyStressColor, targetColor, pulseValue);
     }
 
     private void UpdateMainDirectionalLight(bool isInCombat, Color targetColor, float targetIntensity)
@@ -366,6 +394,55 @@ public class CombatHeartRateVisualizationController : MonoBehaviour
         }
 
         return highHealthColor;
+    }
+
+    private Color GetCombatColorFromHeartRateState()
+    {
+        currentHeartRateState = GetActiveHeartRateState();
+
+        switch (currentHeartRateState)
+        {
+            case LightStressState.RisingStress:
+                currentAppliedColor = midHealthColor;
+                return currentAppliedColor;
+            case LightStressState.HighStress:
+                currentAppliedColor = lowHealthColor;
+                return currentAppliedColor;
+            case LightStressState.Normal:
+            default:
+                currentAppliedColor = highHealthColor;
+                return currentAppliedColor;
+        }
+    }
+
+    private LightStressState GetActiveHeartRateState()
+    {
+        if (useDebugHeartRateState)
+        {
+            return debugHeartRateState;
+        }
+
+        if (heartRateStateController == null)
+        {
+            heartRateStateController = HeartRateStateController.Instance;
+        }
+
+        if (heartRateStateController == null)
+        {
+            return LightStressState.Normal;
+        }
+
+        switch (heartRateStateController.CurrentState)
+        {
+            case HeartRateStateController.HeartRateState.RisingStress:
+                return LightStressState.RisingStress;
+            case HeartRateStateController.HeartRateState.HighStress:
+                return LightStressState.HighStress;
+            case HeartRateStateController.HeartRateState.Normal:
+            case HeartRateStateController.HeartRateState.Recovering:
+            default:
+                return LightStressState.Normal;
+        }
     }
 
     public int GetActiveHeartRate()

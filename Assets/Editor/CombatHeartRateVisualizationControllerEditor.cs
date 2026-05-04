@@ -10,6 +10,7 @@ public class CombatHeartRateVisualizationControllerEditor : Editor
     private SerializedProperty mainDirectionalLight;
     private SerializedProperty nonCombatUIRoot;
     private SerializedProperty combatUIRoot;
+    private SerializedProperty heartRateStateController;
 
     private SerializedProperty enemySensors;
     private SerializedProperty enemyCombatDistance;
@@ -17,6 +18,8 @@ public class CombatHeartRateVisualizationControllerEditor : Editor
     private SerializedProperty affectMainDirectionalLight;
     private SerializedProperty affectResponsiveLights;
     private SerializedProperty responsiveLights;
+
+    private SerializedProperty applyStressColorOutsideCombat;
 
     private SerializedProperty highHealthColor;
     private SerializedProperty midHealthColor;
@@ -35,6 +38,10 @@ public class CombatHeartRateVisualizationControllerEditor : Editor
     private SerializedProperty debugHeartRate;
     private SerializedProperty useDebugCombatState;
     private SerializedProperty debugIsInCombat;
+    private SerializedProperty useDebugHeartRateState;
+    private SerializedProperty debugHeartRateState;
+    private SerializedProperty currentHeartRateState;
+    private SerializedProperty currentAppliedColor;
 
     private MonoScript scriptAsset;
 
@@ -46,6 +53,7 @@ public class CombatHeartRateVisualizationControllerEditor : Editor
         mainDirectionalLight = serializedObject.FindProperty("mainDirectionalLight");
         nonCombatUIRoot = serializedObject.FindProperty("nonCombatUIRoot");
         combatUIRoot = serializedObject.FindProperty("combatUIRoot");
+        heartRateStateController = serializedObject.FindProperty("heartRateStateController");
 
         enemySensors = serializedObject.FindProperty("enemySensors");
         enemyCombatDistance = serializedObject.FindProperty("enemyCombatDistance");
@@ -53,6 +61,8 @@ public class CombatHeartRateVisualizationControllerEditor : Editor
         affectMainDirectionalLight = serializedObject.FindProperty("affectMainDirectionalLight");
         affectResponsiveLights = serializedObject.FindProperty("affectResponsiveLights");
         responsiveLights = serializedObject.FindProperty("responsiveLights");
+
+        applyStressColorOutsideCombat = serializedObject.FindProperty("applyStressColorOutsideCombat");
 
         highHealthColor = serializedObject.FindProperty("highHealthColor");
         midHealthColor = serializedObject.FindProperty("midHealthColor");
@@ -71,6 +81,10 @@ public class CombatHeartRateVisualizationControllerEditor : Editor
         debugHeartRate = serializedObject.FindProperty("debugHeartRate");
         useDebugCombatState = serializedObject.FindProperty("useDebugCombatState");
         debugIsInCombat = serializedObject.FindProperty("debugIsInCombat");
+        useDebugHeartRateState = serializedObject.FindProperty("useDebugHeartRateState");
+        debugHeartRateState = serializedObject.FindProperty("debugHeartRateState");
+        currentHeartRateState = serializedObject.FindProperty("currentHeartRateState");
+        currentAppliedColor = serializedObject.FindProperty("currentAppliedColor");
 
         scriptAsset = MonoScript.FromMonoBehaviour((CombatHeartRateVisualizationController)target);
     }
@@ -93,6 +107,7 @@ public class CombatHeartRateVisualizationControllerEditor : Editor
         DrawProperty(mainDirectionalLight, "主方向光");
         DrawProperty(nonCombatUIRoot, "非战斗UI根节点");
         DrawProperty(combatUIRoot, "战斗UI根节点");
+        DrawProperty(heartRateStateController, "心率压力状态控制器");
 
         EditorGUILayout.Space(6f);
         DrawSection("战斗检测");
@@ -104,6 +119,10 @@ public class CombatHeartRateVisualizationControllerEditor : Editor
         DrawProperty(affectMainDirectionalLight, "启用主方向光响应");
         DrawProperty(affectResponsiveLights, "启用灯组响应");
         DrawProperty(responsiveLights, "响应灯组", true);
+
+        EditorGUILayout.Space(6f);
+        DrawSection("心率压力灯光颜色");
+        DrawProperty(applyStressColorOutsideCombat, "非战斗也应用压力颜色");
 
         EditorGUILayout.Space(6f);
         DrawSection("生命值颜色阶段");
@@ -131,6 +150,16 @@ public class CombatHeartRateVisualizationControllerEditor : Editor
         DrawSection("调试战斗状态");
         DrawProperty(useDebugCombatState, "使用调试战斗状态");
         DrawProperty(debugIsInCombat, "调试为战斗中");
+
+        EditorGUILayout.Space(6f);
+        DrawSection("手动压力状态调试");
+        DrawProperty(useDebugHeartRateState, "启用手动压力状态");
+        DrawProperty(debugHeartRateState, "手动压力状态");
+        using (new EditorGUI.DisabledScope(true))
+        {
+            DrawProperty(currentHeartRateState, "当前灯光压力状态");
+            DrawProperty(currentAppliedColor, "当前灯光颜色");
+        }
 
         serializedObject.ApplyModifiedProperties();
     }
