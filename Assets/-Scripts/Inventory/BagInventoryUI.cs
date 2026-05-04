@@ -1,0 +1,319 @@
+using UnityEngine;
+using UnityEngine.UI;
+
+public class BagInventoryUI : MonoBehaviour
+{
+    [System.Serializable]
+    private class ItemIconEntry
+    {
+        public string itemNamePrefix;
+        public Sprite icon;
+    }
+
+    public static BagInventoryUI Instance { get; private set; }
+
+    [SerializeField] private string slotNamePrefix = "Slot";
+    [SerializeField] private int slotCount = 5;
+    [SerializeField] private Color emptySlotColor = new Color(0.2901961f, 0.2901961f, 0.2901961f, 0.9f);
+    [SerializeField] private Color filledSlotColor = new Color(0.8509804f, 0.7607843f, 0.2901961f, 0.95f);
+    [SerializeField] private Color selectedEmptySlotColor = new Color(0.5529412f, 0.5529412f, 0.5529412f, 0.98f);
+    [SerializeField] private Color selectedFilledSlotColor = new Color(1f, 0.8980392f, 0.38039216f, 1f);
+    [SerializeField] private float pickupRadius = 2.2f;
+    [SerializeField] private float scrollThreshold = 0.05f;
+    [SerializeField] private Vector3 selectedSlotScale = new Vector3(1.12f, 1.12f, 1f);
+    [SerializeField] private Vector3 normalSlotScale = Vector3.one;
+    [SerializeField] private ItemIconEntry[] itemIcons;
+
+    private Image[] slotImages;
+    private RectTransform[] slotRects;
+    private int collectedCount;
+    private int selectedSlotIndex;
+    private Transform playerTarget;
+    private Sprite[] collectedIcons;
+    private string[] collectedItemIds;
+
+    private void Awake()
+    {
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
+        Instance = this;
+        CacheSlots();
+        collectedIcons = new Sprite[slotCount];
+        collectedItemIds = new string[slotCount];
+        RefreshSlots();
+        playerTarget = FindPlayerTarget();
+    }
+
+    private void Update()
+    {
+        HandleScrollSelection();
+        HandleUseSelectedItem();
+
+        if (collectedCount >= slotImages.Length)
+        {
+            return;
+        }
+
+        if (playerTarget == null)
+        {
+            playerTarget = FindPlayerTarget();
+            if (playerTarget == null)
+            {
+                return;
+            }
+        }
+
+        TryCollectNearbyMonstour();
+    }
+
+    public bool TryAddItem(Sprite icon, string itemId)
+    {
+        if (collectedCount >= slotImages.Length)
+        {
+            return false;
+        }
+
+        collectedIcons[collectedCount] = icon;
+        collectedItemIds[collectedCount] = itemId;
+        collectedCount++;
+        RefreshSlots();
+        return true;
+    }
+
+    private void CacheSlots()
+    {
+        slotImages = new Image[slotCount];
+        slotRects = new RectTransform[slotCount];
+
+        for (int i = 0; i < slotCount; i++)
+        {
+            Transform slot = transform.Find($"{slotNamePrefix}{i + 1}");
+            if (slot == null)
+            {
+                continue;
+            }
+
+            slotImages[i] = slot.GetComponent<Image>();
+            slotRects[i] = slot.GetComponent<RectTransform>();
+        }
+    }
+
+    private void RefreshSlots()
+    {
+        if (slotImages == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < slotImages.Length; i++)
+        {
+            if (slotImages[i] == null)
+            {
+                continue;
+            }
+
+            bool isFilled = i < collectedCount;
+            Sprite icon = isFilled ? collectedIcons[i] : null;
+            bool isSelected = i == selectedSlotIndex;
+
+            slotImages[i].sprite = icon;
+            slotImages[i].preserveAspect = true;
+
+            if (icon != null)
+            {
+                slotImages[i].color = isSelected ? selectedFilledSlotColor : Color.white;
+            }
+            else
+            {
+                slotImages[i].color = isSelected
+                    ? selectedEmptySlotColor
+                    : (isFilled ? filledSlotColor : emptySlotColor);
+            }
+
+            if (slotRects != null && i < slotRects.Length && slotRects[i] != null)
+            {
+                slotRects[i].localScale = isSelected ? selectedSlotScale : normalSlotScale;
+            }
+        }
+    }
+
+    private void HandleScrollSelection()
+    {
+        if (slotCount <= 0)
+        {
+            return;
+        }
+
+        float scrollDelta = Input.mouseScrollDelta.y;
+        if (Mathf.Abs(scrollDelta) < scrollThreshold)
+        {
+            return;
+        }
+
+        int direction = scrollDelta > 0f ? -1 : 1;
+        selectedSlotIndex = (selectedSlotIndex + direction + slotCount) % slotCount;
+        RefreshSlots();
+    }
+
+    private void TryCollectNearbyMonstour()
+    {
+        Transform[] sceneTransforms = FindObjectsByType<Transform>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+        float maxSqrDistance = pickupRadius * pickupRadius;
+
+        for (int i = 0; i < sceneTransforms.Length; i++)
+        {
+            Transform candidate = sceneTransforms[i];
+            if (candidate == null)
+            {
+                continue;
+            }
+
+            ItemIconEntry matchedEntry = FindItemIconEntry(candidate.name);
+            if (matchedEntry == null)
+            {
+                continue;
+            }
+
+            if (candidate.parent != null && IsTrackedItem(candidate.parent.name))
+            {
+                continue;
+            }
+
+            float sqrDistance = (playerTarget.position - candidate.position).sqrMagnitude;
+            if (sqrDistance > maxSqrDistance)
+            {
+                continue;
+            }
+
+            if (!TryAddItem(matchedEntry.icon, matchedEntry.itemNamePrefix))
+            {
+                return;
+            }
+
+            Destroy(candidate.gameObject);
+            return;
+        }
+    }
+
+    private void HandleUseSelectedItem()
+    {
+        if (!Input.GetKeyDown(KeyCode.E))
+        {
+            return;
+        }
+
+        if (selectedSlotIndex < 0 || selectedSlotIndex >= collectedCount)
+        {
+            return;
+        }
+
+        string itemId = collectedItemIds[selectedSlotIndex];
+        UseItemEffect(itemId);
+        RemoveItemAt(selectedSlotIndex);
+    }
+
+    private void RemoveItemAt(int index)
+    {
+        for (int i = index; i < collectedCount - 1; i++)
+        {
+            collectedIcons[i] = collectedIcons[i + 1];
+            collectedItemIds[i] = collectedItemIds[i + 1];
+        }
+
+        if (collectedCount > 0)
+        {
+            collectedIcons[collectedCount - 1] = null;
+            collectedItemIds[collectedCount - 1] = null;
+            collectedCount--;
+        }
+
+        if (selectedSlotIndex >= collectedCount)
+        {
+            selectedSlotIndex = Mathf.Max(0, collectedCount - 1);
+        }
+
+        RefreshSlots();
+    }
+
+    // Placeholder for per-item behavior. Add your actual effects here later.
+    private void UseItemEffect(string itemId)
+    {
+        switch (itemId)
+        {
+            case "MonstourRed":
+                if (HeartRateStateController.Instance != null)
+                {
+                    HeartRateStateController.Instance.ForceStateForDuration(
+                        HeartRateStateController.HeartRateState.HighStress,
+                        10f);
+                }
+                break;
+            case "MonstourBlue":
+                if (HeartRateStateController.Instance != null)
+                {
+                    HeartRateStateController.Instance.ForceReturnToNormal();
+                }
+                break;
+            case "Monstour":
+                break;
+            default:
+                break;
+        }
+    }
+
+    private ItemIconEntry FindItemIconEntry(string candidateName)
+    {
+        if (itemIcons == null)
+        {
+            return null;
+        }
+
+        for (int i = 0; i < itemIcons.Length; i++)
+        {
+            ItemIconEntry entry = itemIcons[i];
+            if (entry == null || string.IsNullOrEmpty(entry.itemNamePrefix))
+            {
+                continue;
+            }
+
+            if (candidateName.StartsWith(entry.itemNamePrefix))
+            {
+                return entry;
+            }
+        }
+
+        return null;
+    }
+
+    private bool IsTrackedItem(string candidateName)
+    {
+        return FindItemIconEntry(candidateName) != null;
+    }
+
+    private Transform FindPlayerTarget()
+    {
+        CharacterInputSystem inputSystem = FindFirstObjectByType<CharacterInputSystem>();
+        if (inputSystem != null)
+        {
+            return inputSystem.transform;
+        }
+
+        GameObject taggedPlayer = GameObject.FindGameObjectWithTag("Player");
+        if (taggedPlayer != null)
+        {
+            return taggedPlayer.transform;
+        }
+
+        GameObject namedPlayer = GameObject.Find("Player (1)");
+        if (namedPlayer != null)
+        {
+            return namedPlayer.transform;
+        }
+
+        return null;
+    }
+}

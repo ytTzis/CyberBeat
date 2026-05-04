@@ -4,6 +4,8 @@ using System;
 
 public class HeartRateStateController : MonoBehaviour
 {
+    public static HeartRateStateController Instance { get; private set; }
+
     public enum HeartRateState
     {
         Normal,
@@ -16,30 +18,30 @@ public class HeartRateStateController : MonoBehaviour
     public HeartRateSimulator heartRate;
 
     [Header("Rising Stress")]
-    public float risingShortMultiplier = 1.05f;     // HR_short > HR_case * 1.05
-    public float risingTrendThreshold = 2f;         // Trend >= 2
-    public float risingRequiredSeconds = 3f;
+    public float risingShortMultiplier = 1.035f;     // HR_short > HR_case * 1.035
+    public float risingTrendThreshold = 1f;          // Trend >= 1
+    public float risingRequiredSeconds = 2f;
 
     [Header("High Stress")]
-    public float highShortMultiplier = 1.15f;       // HR_short > HR_case * 1.15
-    public float highLongMultiplier = 1.10f;        // HR_long  > HR_case * 1.10
-    public float highStableTrendAbs = 2f;           // |Trend| < 2
-    public float highRequiredSeconds = 4f;
+    public float highShortMultiplier = 1.10f;       // HR_short > HR_case * 1.10
+    public float highLongMultiplier = 1.06f;        // HR_long  > HR_case * 1.06
+    public float highStableTrendAbs = 2.5f;         // |Trend| < 2.5
+    public float highRequiredSeconds = 2f;
 
     [Header("Direct Jump To High Stress")]
-    public float directHighShortMultiplier = 1.22f;   // HR_short > HR_case * 1.22
-    public float directHighCurrentMultiplier = 1.20f; // HR_current > HR_case * 1.20
-    public float directHighTrendThreshold = 4f;       // Trend >= 4
+    public float directHighShortMultiplier = 1.18f;   // HR_short > HR_case * 1.18
+    public float directHighCurrentMultiplier = 1.16f; // HR_current > HR_case * 1.16
+    public float directHighTrendThreshold = 3.5f;     // Trend >= 3.5
 
     [Header("Recovering")]
-    public float recoverShortAboveBaseline = 1.02f; // HR_short > HR_case * 1.02
-    public float recoverTrendThreshold = -2f;       // Trend <= -2
+    public float recoverShortAboveBaseline = 1.015f; // HR_short > HR_case * 1.015
+    public float recoverTrendThreshold = -1.5f;      // Trend <= -1.5
     public float recoverRequiredSeconds = 3f;
 
     [Header("Return To Normal")]
     public float normalShortMultiplier = 1.03f;     // HR_short <= HR_case * 1.03
     public float normalLongMultiplier = 1.04f;      // HR_long  <= HR_case * 1.04
-    public float normalTrendAbs = 2f;               // |Trend| < 2
+    public float normalTrendAbs = 1.5f;             // |Trend| < 1.5
     public float normalRequiredSeconds = 2f;
 
     [Header("Transition Protection")]
@@ -58,6 +60,9 @@ public class HeartRateStateController : MonoBehaviour
     private float recoveringTimer = 0f;
     private float normalTimer = 0f;
     private float stateTransitionCooldownTimer = 0f;
+    private bool hasForcedStateOverride = false;
+    private HeartRateState forcedState;
+    private float forcedStateTimer = 0f;
 
     // 只有真的进入过紧张状态后，才允许进入恢复冷静
     private bool hasBeenStressed = false;
@@ -69,12 +74,17 @@ public class HeartRateStateController : MonoBehaviour
 
     private void Awake()
     {
-        TryAutoBindHeartRate();
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
+        Instance = this;
     }
 
     private void Update()
     {
-        TryAutoBindHeartRate();
         if (heartRate == null) return;
         if (heartRate.isCalibrating) return;
 
@@ -82,6 +92,25 @@ public class HeartRateStateController : MonoBehaviour
             stateTransitionCooldownTimer -= Time.deltaTime;
 
         Trend = heartRate.HR_short - heartRate.HR_long;
+
+        if (hasForcedStateOverride)
+        {
+            forcedStateTimer -= Time.deltaTime;
+
+            if (CurrentState != forcedState)
+            {
+                ForceSetState(forcedState);
+                InvokeEnterAction(forcedState);
+            }
+
+            if (forcedStateTimer <= 0f)
+            {
+                ClearForcedStateOverride();
+            }
+
+            UpdateStateUI();
+            return;
+        }
 
         bool risingStress = CheckRisingStress();
         bool highStress = CheckHighStress();
@@ -132,14 +161,6 @@ public class HeartRateStateController : MonoBehaviour
         }
 
         UpdateStateUI();
-    }
-
-    private void TryAutoBindHeartRate()
-    {
-        if (heartRate == null)
-        {
-            heartRate = HeartRateSimulator.Instance;
-        }
     }
 
     private bool CheckRisingStress()
@@ -224,13 +245,90 @@ public class HeartRateStateController : MonoBehaviour
         Debug.Log($"[HeartRateState] {oldState} -> {newState}");
     }
 
+    public void ForceStateForDuration(HeartRateState newState, float durationSeconds)
+    {
+        hasForcedStateOverride = true;
+        forcedState = newState;
+        forcedStateTimer = Mathf.Max(0f, durationSeconds);
+
+        if (newState == HeartRateState.Normal)
+        {
+            hasBeenStressed = false;
+        }
+        else if (newState == HeartRateState.HighStress || newState == HeartRateState.RisingStress)
+        {
+            hasBeenStressed = true;
+        }
+
+        ResetTransitionTimers();
+        ForceSetState(newState);
+        InvokeEnterAction(newState);
+    }
+
+    public void ForceReturnToNormal()
+    {
+        ClearForcedStateOverride();
+        hasBeenStressed = false;
+        ResetTransitionTimers();
+        ForceSetState(HeartRateState.Normal);
+        OnReturnToNormal?.Invoke();
+    }
+
+    private void ClearForcedStateOverride()
+    {
+        hasForcedStateOverride = false;
+        forcedStateTimer = 0f;
+    }
+
+    private void ResetTransitionTimers()
+    {
+        risingTimer = 0f;
+        highTimer = 0f;
+        recoveringTimer = 0f;
+        normalTimer = 0f;
+    }
+
+    private void InvokeEnterAction(HeartRateState state)
+    {
+        switch (state)
+        {
+            case HeartRateState.RisingStress:
+                OnRisingStressEnter?.Invoke();
+                break;
+            case HeartRateState.HighStress:
+                OnHighStressEnter?.Invoke();
+                break;
+            case HeartRateState.Recovering:
+                OnRecoveringEnter?.Invoke();
+                break;
+            case HeartRateState.Normal:
+                OnReturnToNormal?.Invoke();
+                break;
+        }
+    }
+
     private void UpdateStateUI()
     {
         if (stateText == null || heartRate == null) return;
 
         stateText.text =
             $"State: {CurrentState}\n" +
-            $"HR: {heartRate.currentHeartRate:F0} BPM\n" +
-            $"Baseline: {(heartRate.isCalibrating ? "Calibrating..." : $"{heartRate.HR_case:F0} BPM")}";
+            $"HR_case: {heartRate.HR_case:F1}\n" +
+            $"HR_current: {heartRate.currentHeartRate:F1}\n" +
+            $"HR_short: {heartRate.HR_short:F1}\n" +
+            $"HR_long: {heartRate.HR_long:F1}\n" +
+            $"Trend: {Trend:F1}\n" +
+            $"Rising Need: short > {(heartRate.HR_case * risingShortMultiplier):F1}, trend >= {risingTrendThreshold:F1}\n" +
+            $"High Need: short > {(heartRate.HR_case * highShortMultiplier):F1}, long > {(heartRate.HR_case * highLongMultiplier):F1}, |trend| < {highStableTrendAbs:F1}\n" +
+            $"Direct High Need A: short > {(heartRate.HR_case * directHighShortMultiplier):F1}\n" +
+            $"Direct High Need B: current > {(heartRate.HR_case * directHighCurrentMultiplier):F1}, trend >= {directHighTrendThreshold:F1}\n" +
+            $"Recover Need: short > {(heartRate.HR_case * recoverShortAboveBaseline):F1}, trend <= {recoverTrendThreshold:F1}\n" +
+            $"Normal Need: short <= {(heartRate.HR_case * normalShortMultiplier):F1}, long <= {(heartRate.HR_case * normalLongMultiplier):F1}, |trend| < {normalTrendAbs:F1}\n" +
+            $"RisingTimer: {risingTimer:F1}\n" +
+            $"HighTimer: {highTimer:F1}\n" +
+            $"RecoverTimer: {recoveringTimer:F1}\n" +
+            $"NormalTimer: {normalTimer:F1}\n" +
+            $"StateCD: {Mathf.Max(0f, stateTransitionCooldownTimer):F1}\n" +
+            $"HasBeenStressed: {hasBeenStressed}";
     }
 }
