@@ -67,8 +67,14 @@ public class HeartRateStateController : MonoBehaviour
     public Action OnRecoveringEnter;
     public Action OnReturnToNormal;
 
+    private void Awake()
+    {
+        TryAutoBindHeartRate();
+    }
+
     private void Update()
     {
+        TryAutoBindHeartRate();
         if (heartRate == null) return;
         if (heartRate.isCalibrating) return;
 
@@ -126,6 +132,14 @@ public class HeartRateStateController : MonoBehaviour
         }
 
         UpdateStateUI();
+    }
+
+    private void TryAutoBindHeartRate()
+    {
+        if (heartRate == null)
+        {
+            heartRate = HeartRateSimulator.Instance;
+        }
     }
 
     private bool CheckRisingStress()
@@ -216,22 +230,7 @@ public class HeartRateStateController : MonoBehaviour
 
         stateText.text =
             $"State: {CurrentState}\n" +
-            $"HR_case: {heartRate.HR_case:F1}\n" +
-            $"HR_current: {heartRate.currentHeartRate:F1}\n" +
-            $"HR_short: {heartRate.HR_short:F1}\n" +
-            $"HR_long: {heartRate.HR_long:F1}\n" +
-            $"Trend: {Trend:F1}\n" +
-            $"Rising Need: short > {(heartRate.HR_case * risingShortMultiplier):F1}, trend >= {risingTrendThreshold:F1}\n" +
-            $"High Need: short > {(heartRate.HR_case * highShortMultiplier):F1}, long > {(heartRate.HR_case * highLongMultiplier):F1}, |trend| < {highStableTrendAbs:F1}\n" +
-            $"Direct High Need A: short > {(heartRate.HR_case * directHighShortMultiplier):F1}\n" +
-            $"Direct High Need B: current > {(heartRate.HR_case * directHighCurrentMultiplier):F1}, trend >= {directHighTrendThreshold:F1}\n" +
-            $"Recover Need: short > {(heartRate.HR_case * recoverShortAboveBaseline):F1}, trend <= {recoverTrendThreshold:F1}\n" +
-            $"Normal Need: short <= {(heartRate.HR_case * normalShortMultiplier):F1}, long <= {(heartRate.HR_case * normalLongMultiplier):F1}, |trend| < {normalTrendAbs:F1}\n" +
-            $"RisingTimer: {risingTimer:F1}\n" +
-            $"HighTimer: {highTimer:F1}\n" +
-            $"RecoverTimer: {recoveringTimer:F1}\n" +
-            $"NormalTimer: {normalTimer:F1}\n" +
-            $"StateCD: {Mathf.Max(0f, stateTransitionCooldownTimer):F1}\n" +
-            $"HasBeenStressed: {hasBeenStressed}";
+            $"HR: {heartRate.currentHeartRate:F0} BPM\n" +
+            $"Baseline: {(heartRate.isCalibrating ? "Calibrating..." : $"{heartRate.HR_case:F0} BPM")}";
     }
 }

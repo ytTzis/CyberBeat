@@ -1,9 +1,12 @@
 using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
+using UnityEngine.SceneManagement;
 
 public class HeartRateSimulator : MonoBehaviour
 {
+    public static HeartRateSimulator Instance { get; private set; }
+
     [Header("Simulation")]
     public bool useSimulation = true;
     public float currentHeartRate = 75f;
@@ -38,10 +41,38 @@ public class HeartRateSimulator : MonoBehaviour
     private float shortSum = 0f;
     private float longSum = 0f;
 
+    private void Awake()
+    {
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
+        Instance = this;
+        DontDestroyOnLoad(gameObject);
+    }
+
     private void Start()
     {
+        SceneManager.sceneLoaded += OnSceneLoaded;
         currentHeartRate = Mathf.Clamp(currentHeartRate, minHeartRate, maxHeartRate);
-        HR_case = currentHeartRate;
+
+        if (HR_case <= 0f)
+        {
+            HR_case = currentHeartRate;
+        }
+
+        TryAutoBindDebugText();
+    }
+
+    private void OnDestroy()
+    {
+        if (Instance == this)
+        {
+            SceneManager.sceneLoaded -= OnSceneLoaded;
+            Instance = null;
+        }
     }
 
     private void Update()
@@ -67,6 +98,30 @@ public class HeartRateSimulator : MonoBehaviour
         }
 
         UpdateDebugUI();
+    }
+
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        TryAutoBindDebugText();
+    }
+
+    private void TryAutoBindDebugText()
+    {
+        if (debugText != null)
+        {
+            return;
+        }
+
+        TMP_Text[] textCandidates = FindObjectsByType<TMP_Text>(FindObjectsSortMode.None);
+        for (int i = 0; i < textCandidates.Length; i++)
+        {
+            TMP_Text candidate = textCandidates[i];
+            if (candidate != null && candidate.name == "LeftText")
+            {
+                debugText = candidate;
+                return;
+            }
+        }
     }
 
     private void HandleManualAdjust()
@@ -149,6 +204,11 @@ public class HeartRateSimulator : MonoBehaviour
 
     private void UpdateDebugUI()
     {
+        if (debugText == null)
+        {
+            TryAutoBindDebugText();
+        }
+
         if (debugText == null) return;
 
         if (isCalibrating)

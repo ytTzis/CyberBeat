@@ -69,6 +69,11 @@ public class HeartRateVisualFeedback : MonoBehaviour
     private float currentOverlayAlpha = 0f;
     private HeartRateStateController.HeartRateState lastState;
 
+    private void Awake()
+    {
+        TryAutoBindHeartRate();
+    }
+
     private void Start()
     {
         if (heartRateTextRect != null)
@@ -93,6 +98,7 @@ public class HeartRateVisualFeedback : MonoBehaviour
 
     private void Update()
     {
+        TryAutoBindHeartRate();
         if (heartRate == null || stateController == null)
             return;
 
@@ -101,6 +107,14 @@ public class HeartRateVisualFeedback : MonoBehaviour
         UpdateBounce();
         UpdateOverlayBreathing();
         UpdateVolumeEffects();
+    }
+
+    private void TryAutoBindHeartRate()
+    {
+        if (heartRate == null)
+        {
+            heartRate = HeartRateSimulator.Instance;
+        }
     }
 
     private void DetectStateEntry()

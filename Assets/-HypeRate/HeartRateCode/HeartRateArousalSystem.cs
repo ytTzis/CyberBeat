@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 //���Ľű�
 //ʵ�ֹ�������
@@ -14,6 +15,8 @@ using UnityEngine;
 
 public class HeartRateArousalSystem : MonoBehaviour
 {
+    private const string CalibrationSceneName = "1_GameScene";
+
     public enum ArousalState
     {
         Calm,
@@ -59,6 +62,8 @@ public class HeartRateArousalSystem : MonoBehaviour
     public Action<ArousalState> OnStateChanged;
     public Action OnSuddenTension;
 
+    public static HeartRateArousalSystem Instance { get; private set; }
+
     private float sampleTimer = 0f;
     private float calibrationTimer = 0f;
     private float sustainedHighTimer = 0f;
@@ -73,18 +78,42 @@ public class HeartRateArousalSystem : MonoBehaviour
     private Queue<float> previousShortSamples = new Queue<float>();
 
     private ArousalState lastState;
+    private bool hasCompletedInitialCalibration;
+
+    private void Awake()
+    {
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
+        Instance = this;
+        DontDestroyOnLoad(gameObject);
+    }
 
     void Start()
     {
-        if (autoStartCalibration)
+        SceneManager.sceneLoaded += OnSceneLoaded;
+
+        if (ShouldStartInitialCalibrationForScene(SceneManager.GetActiveScene().name))
         {
             StartCalibration();
         }
-        else
+        else if (!autoStartCalibration)
         {
             baselineHeartRate = 75f;
             currentState = ArousalState.Alert;
             lastState = currentState;
+        }
+    }
+
+    private void OnDestroy()
+    {
+        if (Instance == this)
+        {
+            SceneManager.sceneLoaded -= OnSceneLoaded;
+            Instance = null;
         }
     }
 
@@ -103,6 +132,21 @@ public class HeartRateArousalSystem : MonoBehaviour
 
         shortWindowTimer = 0f;
         previousShortWindowTimer = 0f;
+    }
+
+    private bool ShouldStartInitialCalibrationForScene(string sceneName)
+    {
+        return autoStartCalibration &&
+               !hasCompletedInitialCalibration &&
+               string.Equals(sceneName, CalibrationSceneName, StringComparison.Ordinal);
+    }
+
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        if (ShouldStartInitialCalibrationForScene(scene.name))
+        {
+            StartCalibration();
+        }
     }
 
     void Update()
@@ -144,6 +188,7 @@ public class HeartRateArousalSystem : MonoBehaviour
         {
             isCalibrating = false;
             baselineHeartRate = Mathf.Max(1f, AverageQueue(longSamples));
+            hasCompletedInitialCalibration = true;
             currentState = ArousalState.Alert;
             lastState = currentState;
 
