@@ -56,5 +56,5 @@
         "temp/": true,
         "Temp/": true
     },
-    "dotnet.defaultSolution": "New_Game_Space-Time.sln"
+    "dotnet.defaultSolution": "Game_Space-Time.sln"
 }
