@@ -3,6 +3,7 @@ using UnityEngine.UI;
 using TMPro;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
+using Object = UnityEngine.Object;
 
 public class HeartRateVisualFeedback : MonoBehaviour
 {
@@ -20,16 +21,6 @@ public class HeartRateVisualFeedback : MonoBehaviour
     public Color risingTextColor = Color.yellow;
     public Color highTextColor = Color.red;
     public Color recoveringTextColor = Color.green;
-
-    [Header("Vignette")]
-    public float normalOverlayAlpha = 0f;
-    public float risingOverlayAlphaMin = 0.06f;
-    public float risingOverlayAlphaMax = 0.14f;
-    public float highOverlayAlphaMin = 0.20f;
-    public float highOverlayAlphaMax = 0.35f;
-    public float recoveringOverlayAlpha = 0.05f;
-    public float pulseSpeed = 2f;
-    public float overlayLerpSpeed = 4f;
 
     [Header("UI Bounce")]
     public float risingBounceScale = 1.08f;
@@ -65,6 +56,9 @@ public class HeartRateVisualFeedback : MonoBehaviour
 
     private ChromaticAberration chromaticAberration;
     private Vignette urpVignette;
+    private VolumeProfile runtimeVolumeProfile;
+    private float defaultChromaticIntensity;
+    private float defaultVignetteIntensity;
 
     private float currentOverlayAlpha = 0f;
     private HeartRateStateController.HeartRateState lastState;
@@ -79,21 +73,25 @@ public class HeartRateVisualFeedback : MonoBehaviour
         if (heartRateTextRect != null)
             originalTextScale = heartRateTextRect.localScale;
 
-        if (globalVolume != null && globalVolume.profile != null)
-        {
-            globalVolume.profile.TryGet(out chromaticAberration);
-            globalVolume.profile.TryGet(out urpVignette);
-        }
-
-        if (stressVignette != null)
-        {
-            Color c = stressVignette.color;
-            c.a = 0f;
-            stressVignette.color = c;
-        }
+        InitializeVolumeProfile();
+        ResetVisualStateImmediate();
 
         if (stateController != null)
             lastState = stateController.CurrentState;
+    }
+
+    private void OnDestroy()
+    {
+        if (globalVolume != null && runtimeVolumeProfile != null && globalVolume.profile == runtimeVolumeProfile)
+        {
+            globalVolume.profile = null;
+        }
+
+        if (runtimeVolumeProfile != null)
+        {
+            Object.Destroy(runtimeVolumeProfile);
+            runtimeVolumeProfile = null;
+        }
     }
 
     private void Update()
@@ -105,7 +103,6 @@ public class HeartRateVisualFeedback : MonoBehaviour
         DetectStateEntry();
         UpdateHeartRateText();
         UpdateBounce();
-        UpdateOverlayBreathing();
         UpdateVolumeEffects();
     }
 
@@ -114,6 +111,69 @@ public class HeartRateVisualFeedback : MonoBehaviour
         if (heartRate == null)
         {
             heartRate = HeartRateSimulator.Instance;
+        }
+    }
+
+    private void InitializeVolumeProfile()
+    {
+        chromaticAberration = null;
+        urpVignette = null;
+
+        if (globalVolume == null || globalVolume.sharedProfile == null)
+        {
+            return;
+        }
+
+        if (runtimeVolumeProfile != null)
+        {
+            Object.Destroy(runtimeVolumeProfile);
+        }
+
+        runtimeVolumeProfile = Object.Instantiate(globalVolume.sharedProfile);
+        runtimeVolumeProfile.name = globalVolume.sharedProfile.name + " (Runtime)";
+        globalVolume.profile = runtimeVolumeProfile;
+
+        runtimeVolumeProfile.TryGet(out chromaticAberration);
+        runtimeVolumeProfile.TryGet(out urpVignette);
+
+        if (chromaticAberration != null)
+        {
+            defaultChromaticIntensity = chromaticAberration.intensity.value;
+        }
+
+        if (urpVignette != null)
+        {
+            defaultVignetteIntensity = urpVignette.intensity.value;
+        }
+    }
+
+    private void ResetVisualStateImmediate()
+    {
+        currentOverlayAlpha = 0f;
+        bounceTimer = 0f;
+        bouncing = false;
+        targetBounceScale = 1f;
+
+        if (heartRateTextRect != null)
+        {
+            heartRateTextRect.localScale = originalTextScale == Vector3.zero ? Vector3.one : originalTextScale;
+        }
+
+        if (stressVignette != null)
+        {
+            Color c = stressVignette.color;
+            c.a = 0f;
+            stressVignette.color = c;
+        }
+
+        if (chromaticAberration != null)
+        {
+            chromaticAberration.intensity.value = defaultChromaticIntensity;
+        }
+
+        if (urpVignette != null)
+        {
+            urpVignette.intensity.value = defaultVignetteIntensity;
         }
     }
 
@@ -192,46 +252,6 @@ public class HeartRateVisualFeedback : MonoBehaviour
         float curve = Mathf.Sin(t * Mathf.PI);
         float scale = Mathf.Lerp(1f, targetBounceScale, curve);
         heartRateTextRect.localScale = originalTextScale * scale;
-    }
-
-    private void UpdateOverlayBreathing()
-    {
-        if (stressVignette == null || stateController == null) return;
-
-        float targetAlpha = normalOverlayAlpha;
-
-        switch (stateController.CurrentState)
-        {
-            case HeartRateStateController.HeartRateState.RisingStress:
-                {
-                    float pulse = (Mathf.Sin(Time.time * pulseSpeed) + 1f) * 0.5f;
-                    targetAlpha = Mathf.Lerp(risingOverlayAlphaMin, risingOverlayAlphaMax, pulse);
-                    break;
-                }
-
-            case HeartRateStateController.HeartRateState.HighStress:
-                {
-                    float pulse = (Mathf.Sin(Time.time * (pulseSpeed + 1f)) + 1f) * 0.5f;
-                    targetAlpha = Mathf.Lerp(highOverlayAlphaMin, highOverlayAlphaMax, pulse);
-                    break;
-                }
-
-            case HeartRateStateController.HeartRateState.Recovering:
-                {
-                    targetAlpha = recoveringOverlayAlpha;
-                    break;
-                }
-
-            default:
-                targetAlpha = normalOverlayAlpha;
-                break;
-        }
-
-        currentOverlayAlpha = Mathf.Lerp(currentOverlayAlpha, targetAlpha, Time.deltaTime * overlayLerpSpeed);
-
-        Color c = stressVignette.color;
-        c.a = currentOverlayAlpha;
-        stressVignette.color = c;
     }
 
     private void UpdateVolumeEffects()

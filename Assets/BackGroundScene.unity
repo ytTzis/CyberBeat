@@ -96,8 +96,8 @@ LightmapSettings:
     m_ExportTrainingData: 0
     m_TrainingDataDestination: TrainingData
     m_LightProbeSampleCountMultiplier: 4
-  m_LightingDataAsset: {fileID: 0}
-  m_LightingSettings: {fileID: 0}
+  m_LightingDataAsset: {fileID: 112000000, guid: 781cc9c08b2623145a40eb50513fd77c, type: 2}
+  m_LightingSettings: {fileID: 4890085278179872738, guid: 0cefe2c25ecd6c04ca697400b1f0465e, type: 2}
 --- !u!196 &4
 NavMeshSettings:
   serializedVersion: 2
@@ -180,7 +180,14 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: adsiahroiasidhioahdidhsoauihdoashoidhaiodhoaushodhaiosdsdhuoishaodihiwaadsiahroiasidhioahdidhsoauihdoashoidhaiodhoaushodhaiosdsdhuoishaodihiwaadsiahroiasidhioahdidhsoauihdoashoidhaiodhoaushodhaiosdsdhuoishaodihiwaadsiahroiasidhioahdidhsoauihdoashoidhaiodhoaushodhaiosdsdhuoishaodihiwaadsiahroiasidhioahdidhsoauihdoashoidhaiodhoaushodhaiosdsdhuoishaodihiwaadsiahroiasidhioahdidhsoauihdoashoidhaiodhoaushodhaiosdsdhuoishaodihiwaadsiahroiasidhioahdidhsoauihdoashoidhaiodhoaushodhaiosdsdhuoishaodihiwa
+  m_text: 'Scenario Scenario Scenario Scenario Scenario Scenario Scenario Scenario
+    Scenario Scenario Scenario Scenario Scenario Scenario Scenario Scenario Scenario
+    Scenario Scenario Scenario Scenario Scenario Scenario Scenario Scenario Scenario
+    Scenario Scenario Scenario Scenario Scenario Scenario Scenario Scenario Scenario
+    Scenario Scenario Scenario Scenario Scenario Scenario Scenario Scenario Scenario
+    Scenario Scenario Scenario Scenario Scenario Scenario Scenario Scenario Scenario
+    Scenario Scenario Scenario Scenario Scenario Scenario Scenario Scenario Scenario
+    Scenario Scenario Scenario Scenario Scenario Scenario Scenario Scenario '
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: ecd2d7f32e4cf1c41a959f3da193eca8, type: 2}
   m_sharedMaterial: {fileID: -4431558830023880052, guid: ecd2d7f32e4cf1c41a959f3da193eca8, type: 2}

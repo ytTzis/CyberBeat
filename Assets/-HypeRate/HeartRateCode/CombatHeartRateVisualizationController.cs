@@ -2,6 +2,7 @@ using UGG.Combat;
 using UGG.Health;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 [AddComponentMenu("心率可视化/战斗心率可视化控制器")]
 public class CombatHeartRateVisualizationController : MonoBehaviour
@@ -77,6 +78,17 @@ public class CombatHeartRateVisualizationController : MonoBehaviour
     {
         TryAutoBind();
         CacheDefaultLightState();
+        RestoreDefaultLightStateImmediate();
+    }
+
+    private void OnEnable()
+    {
+        SceneManager.sceneLoaded += OnSceneLoaded;
+    }
+
+    private void OnDisable()
+    {
+        SceneManager.sceneLoaded -= OnSceneLoaded;
     }
 
     private void OnValidate()
@@ -89,6 +101,13 @@ public class CombatHeartRateVisualizationController : MonoBehaviour
         bool isInCombat = GetActiveCombatState();
         UpdateUIState(isInCombat);
         UpdateLights(isInCombat);
+    }
+
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        TryAutoBind();
+        CacheDefaultLightState();
+        RestoreDefaultLightStateImmediate();
     }
 
     private void TryAutoBind()
@@ -208,6 +227,32 @@ public class CombatHeartRateVisualizationController : MonoBehaviour
 
             responsiveLightDefaultColors[i] = responsiveLight.color;
             responsiveLightDefaultIntensities[i] = responsiveLight.intensity;
+        }
+    }
+
+    private void RestoreDefaultLightStateImmediate()
+    {
+        if (mainDirectionalLight != null)
+        {
+            mainDirectionalLight.color = defaultLightColor;
+            mainDirectionalLight.intensity = defaultLightIntensity;
+        }
+
+        if (responsiveLights == null || responsiveLightDefaultColors == null || responsiveLightDefaultIntensities == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < responsiveLights.Length; i++)
+        {
+            Light responsiveLight = responsiveLights[i];
+            if (responsiveLight == null)
+            {
+                continue;
+            }
+
+            responsiveLight.color = responsiveLightDefaultColors[i];
+            responsiveLight.intensity = responsiveLightDefaultIntensities[i];
         }
     }
 
