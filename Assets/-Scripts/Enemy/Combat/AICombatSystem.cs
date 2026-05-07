@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UGG.Combat;
@@ -8,6 +8,8 @@ public class AICombatSystem : CharacterCombatSystemBase
 {
     [SerializeField, Header("Detection Center")] private Transform detectionCenter;
     [SerializeField, Header("Detection Range")] private float detectionRang;
+    [SerializeField, Range(-1f, 1f), Header("Vision Forward Threshold")] private float visionForwardThreshold = 0.15f;
+    [SerializeField, Min(0f), Header("Target Memory Duration")] private float targetMemoryDuration = 1.35f;
 
     [SerializeField, Header("Target Layer")] private LayerMask whatisEnemy;
     [SerializeField, Header("Obstacle Layer")] private LayerMask whatisObs;
@@ -25,18 +27,24 @@ public class AICombatSystem : CharacterCombatSystemBase
     [SerializeField, Min(0f)] private float assistedGapCloseMoveSpeed = 2.6f;
     [SerializeField, Range(0f, 1f)] private float assistedGapCloseEndNormalizedTime = 0.55f;
     [SerializeField, Min(0f)] private float assistedGapCloseRangeBuffer = 0.15f;
+    [SerializeField, Header("Pressure Move"), Min(0f)] private float pressureApproachRange = 4.75f;
+    [SerializeField, Min(0f)] private float pressureApproachSpeed = 1.85f;
+    [SerializeField, Min(0f)] private float pressureStopDistanceBuffer = 0.2f;
 
     [SerializeField, Header("Skills")] private List<CombatSkillBase> skills = new List<CombatSkillBase>();
     [SerializeField, Header("Skill Variation")] private bool useRandomSkillSelection = true;
-    [SerializeField, Range(0f, 1f)] private float repeatSkillWeightMultiplier = 0.2f;
-    [SerializeField, Range(0f, 1f)] private float recentSkillWeightMultiplier = 0.55f;
+    [SerializeField, Range(0f, 1f)] private float repeatSkillWeightMultiplier = 0.45f;
+    [SerializeField, Range(0f, 1f)] private float recentSkillWeightMultiplier = 0.7f;
     [SerializeField, Min(0)] private int recentSkillMemory = 2;
     [SerializeField, Min(0.1f)] private float distancePreferenceRange = 2.5f;
     [SerializeField, Header("Context Preference")] private string longRangePreferredSkillName = "JumpAttack04_1";
-    [SerializeField, Min(0f)] private float longRangeThreshold = 3.6f;
-    [SerializeField, Min(1f)] private float longRangePreferredSkillWeightMultiplier = 2.5f;
+    [SerializeField, Min(0f)] private float longRangeThreshold = 3.1f;
+    [SerializeField, Min(1f)] private float longRangePreferredSkillWeightMultiplier = 3f;
+    [SerializeField, Min(0f), Header("Close Range Threshold")] private float closeRangeThreshold = 2.2f;
+    [SerializeField, Min(1f)] private float closeRangePreferredSkillWeightMultiplier = 1.35f;
     private int nextSkillIndex;
     private readonly List<int> recentSkillIds = new List<int>();
+    private float lastSeenTargetTime = float.MinValue;
 
     private void Start()
     {
@@ -56,6 +64,7 @@ public class AICombatSystem : CharacterCombatSystemBase
         LockOnTarget();
         UpdateAnimationMove();
         DetectionTarget();
+        UpdateTargetMemory();
     }
 
     private void LateUpdate()
@@ -68,9 +77,6 @@ public class AICombatSystem : CharacterCombatSystemBase
         OnAnimatorActionAutoLockON();
     }
 
-    /// <summary>
-    /// AI vision
-    /// </summary>
     private void AIView()
     {
         if (IsOwnerDead())
@@ -89,9 +95,9 @@ public class AICombatSystem : CharacterCombatSystemBase
 
         if (!Physics.Raycast((transform.root.position + transform.root.up * 0.5f), (target.position - transform.root.position).normalized, out var hit, detectionRang, whatisObs))
         {
-            if (Vector3.Dot((target.position - transform.root.position).normalized, transform.root.forward) > 0.35f)
+            if (Vector3.Dot((target.position - transform.root.position).normalized, transform.root.forward) > visionForwardThreshold)
             {
-                currentTarget = target;
+                SetCurrentTarget(target);
             }
         }
     }
@@ -138,6 +144,30 @@ public class AICombatSystem : CharacterCombatSystemBase
             _characterMovementBase.CharacterMoveInterface(transform.root.forward, _animator.GetFloat(animationMoveID) * animationMoveMult, true);
             TryAssistJumpAttackGapClose();
         }
+
+        TryPressureApproach();
+    }
+
+    private void TryPressureApproach()
+    {
+        if (currentTarget == null || !_animator.CheckAnimationTag("Motion"))
+        {
+            return;
+        }
+
+        if (_animator.CheckAnimationTag("Attack") || _animator.CheckAnimationTag("Roll"))
+        {
+            return;
+        }
+
+        float pressureStopDistance = attackDetectionRang + pressureStopDistanceBuffer;
+        float currentDistance = GetCurrentTargetDistance();
+        if (currentDistance <= pressureStopDistance || currentDistance > pressureApproachRange)
+        {
+            return;
+        }
+
+        _characterMovementBase.CharacterMoveInterface(GetDirectionForTarget(), pressureApproachSpeed, true);
     }
 
     private void TryAssistJumpAttackGapClose()
@@ -215,11 +245,27 @@ public class AICombatSystem : CharacterCombatSystemBase
         {
             currentTarget = target;
         }
+
+        lastSeenTargetTime = Time.time;
     }
 
     private void ClearCurrentTarget()
     {
         currentTarget = null;
+        lastSeenTargetTime = float.MinValue;
+    }
+
+    private void UpdateTargetMemory()
+    {
+        if (currentTarget == null || targetMemoryDuration <= 0f)
+        {
+            return;
+        }
+
+        if (Time.time - lastSeenTargetTime > targetMemoryDuration)
+        {
+            ClearCurrentTarget();
+        }
     }
 
     private bool IsOwnerDead()
@@ -372,6 +418,11 @@ public class AICombatSystem : CharacterCombatSystemBase
                 {
                     weight *= longRangePreferredSkillWeightMultiplier;
                 }
+
+                if (targetDistance <= closeRangeThreshold && skill.GetSkillUseDistance() <= closeRangeThreshold + 0.35f)
+                {
+                    weight *= closeRangePreferredSkillWeightMultiplier;
+                }
             }
 
             if (weight <= 0f)
@@ -451,5 +502,6 @@ public class AICombatSystem : CharacterCombatSystemBase
     public float GetCurrentTargetDistance() => currentTarget == null ? float.MaxValue : Vector3.Distance(currentTarget.position, transform.root.position);
 
     public Vector3 GetDirectionForTarget() => currentTarget == null ? transform.root.forward : (currentTarget.position - transform.root.position).normalized;
-}
 
+    public float GetPressureApproachSpeed() => pressureApproachSpeed;
+}

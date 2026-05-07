@@ -6,18 +6,20 @@ using UnityEngine;
 [CreateAssetMenu(fileName = "NormalSkill", menuName = "Skill/NormalSkill")]
 public class NormalSkill : CombatSkillBase
 {
+    [SerializeField] private float aggressiveApproachSpeed = 2.15f;
+    [SerializeField, Min(0f)] private float attackCommitRangeBuffer = 0.2f;
+
     public override void InvokeSkill()
     {
         if (animator.CheckAnimationTag("Motion") && skillIsDone)
         {
-            //当技能被激活 但还没进入允许释放距离
-            if (combat.GetCurrentTargetDistance() > skillUseDistance + 0.1f)
+            if (combat.GetCurrentTargetDistance() > skillUseDistance + attackCommitRangeBuffer)
             {
-                movement.CharacterMoveInterface(combat.GetDirectionForTarget(), 1.4f, true);
+                float approachSpeed = Mathf.Max(aggressiveApproachSpeed, combat.GetPressureApproachSpeed());
+                movement.CharacterMoveInterface(combat.GetDirectionForTarget(), approachSpeed, true);
 
                 animator.SetFloat(verticalID, 1f, 0.25f, Time.deltaTime);
                 animator.SetFloat(horizontalID, 0f, 0.25f, Time.deltaTime);
-                //animator.SetFloat(runID, 1f, 0.25f, Time.deltaTime);
             }
             else
             {
