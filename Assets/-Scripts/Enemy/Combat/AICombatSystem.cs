@@ -45,6 +45,7 @@ public class AICombatSystem : CharacterCombatSystemBase
     private int nextSkillIndex;
     private readonly List<int> recentSkillIds = new List<int>();
     private float lastSeenTargetTime = float.MinValue;
+    private bool combatLogicEnabled = true;
 
     private void Start()
     {
@@ -60,16 +61,34 @@ public class AICombatSystem : CharacterCombatSystemBase
             return;
         }
 
+        if (!combatLogicEnabled)
+        {
+            if (!EnsureAnimatorReference())
+            {
+                return;
+            }
+
+            _animator.SetFloat(lockOnID, 0f);
+            ClearCurrentTarget();
+            return;
+        }
+
         AIView();
         LockOnTarget();
         UpdateAnimationMove();
         DetectionTarget();
         UpdateTargetMemory();
+        UpdateCombatSkill();
     }
 
     private void LateUpdate()
     {
         if (IsOwnerDead())
+        {
+            return;
+        }
+
+        if (!combatLogicEnabled)
         {
             return;
         }
@@ -104,6 +123,11 @@ public class AICombatSystem : CharacterCombatSystemBase
 
     private void LockOnTarget()
     {
+        if (!EnsureAnimatorReference())
+        {
+            return;
+        }
+
         if (IsOwnerDead())
         {
             _animator.SetFloat(lockOnID, 0f);
@@ -146,6 +170,39 @@ public class AICombatSystem : CharacterCombatSystemBase
         }
 
         TryPressureApproach();
+    }
+
+    private void UpdateCombatSkill()
+    {
+        if (!combatLogicEnabled || currentTarget == null)
+        {
+            return;
+        }
+
+        if (!EnsureAnimatorReference())
+        {
+            return;
+        }
+
+        if (!_animator.CheckAnimationTag("Motion"))
+        {
+            return;
+        }
+
+        CombatSkillBase nextSkill = GetNextDoneSkill();
+        if (nextSkill == null)
+        {
+            return;
+        }
+
+        // Let pressure approach handle gap-closing so skills only fire once
+        // the enemy is already in a valid attack range.
+        if (GetCurrentTargetDistance() > nextSkill.GetSkillUseDistance())
+        {
+            return;
+        }
+
+        nextSkill.InvokeSkill();
     }
 
     private void TryPressureApproach()
@@ -331,17 +388,30 @@ public class AICombatSystem : CharacterCombatSystemBase
 
         for (int i = 0; i < skills.Count; i++)
         {
+            if (skills[i] == null)
+            {
+                continue;
+            }
+
+            // Instantiate per-enemy skill instances so cooldown/runtime state is not shared
+            // across every enemy that references the same ScriptableObject asset.
+            skills[i] = Instantiate(skills[i]);
             skills[i].InitSkill(_animator, this, _characterMovementBase);
 
             if (!skills[i].GetSkillIsDone())
             {
-                skills[i].ResetSkill();
+                skills[i].SetSkillIsDone(true);
             }
         }
     }
 
     public CombatSkillBase GetAnDoneSkill()
     {
+        if (!combatLogicEnabled)
+        {
+            return null;
+        }
+
         for (int i = 0; i < skills.Count; i++)
         {
             if (skills[i].GetSkillIsDone()) return skills[i];
@@ -353,6 +423,11 @@ public class AICombatSystem : CharacterCombatSystemBase
 
     public CombatSkillBase GetNextDoneSkill()
     {
+        if (!combatLogicEnabled)
+        {
+            return null;
+        }
+
         if (skills.Count == 0)
         {
             return null;
@@ -504,4 +579,46 @@ public class AICombatSystem : CharacterCombatSystemBase
     public Vector3 GetDirectionForTarget() => currentTarget == null ? transform.root.forward : (currentTarget.position - transform.root.position).normalized;
 
     public float GetPressureApproachSpeed() => pressureApproachSpeed;
+
+    public void SetCombatLogicEnabled(bool isEnabled)
+    {
+        combatLogicEnabled = isEnabled;
+
+        if (!combatLogicEnabled)
+        {
+            if (!EnsureAnimatorReference())
+            {
+                return;
+            }
+
+            _animator.SetFloat(lockOnID, 0f);
+            ClearCurrentTarget();
+        }
+    }
+
+    private bool EnsureAnimatorReference()
+    {
+        if (_animator != null)
+        {
+            return true;
+        }
+
+        _animator = GetComponent<Animator>();
+        if (_animator == null)
+        {
+            _animator = GetComponentInChildren<Animator>(true);
+        }
+
+        if (_animator == null)
+        {
+            _animator = GetComponentInParent<Animator>();
+        }
+
+        if (_animator == null && transform.root != null)
+        {
+            _animator = transform.root.GetComponentInChildren<Animator>(true);
+        }
+
+        return _animator != null;
+    }
 }

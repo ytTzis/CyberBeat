@@ -2114,15 +2114,30 @@ MonoBehaviour:
   skillOrigin: {fileID: 0}
   enemyLayer:
     serializedVersion: 2
-    m_Bits: 0
-  shockwaveHitAnimationName: Hit_D_Up
+    m_Bits: 128
+  skill1HitAnimationName: Hit_D_Up
   dashSlashHitAnimationName: Hit_H_Right
   skill1Key: 49
   skill1Cooldown: 3
   skill1HeartRateCost: 6
-  skill1Damage: 18
+  skill1AnimatorTriggerName: HighStressSkill1
+  skill1AnimatorStateName: HighStressSkill1
+  skill1AnimationStateName: GhostSamurai_APose_Air_Attack02_Inplace
+  skill1FirstHitSound: 2
+  skill1FirstHitSoundDelay: 0.16
+  skill1SecondHitSoundDelay: 0.42
+  skill1FirstHitSoundVolume: 0.95
+  skill1FirstHitDamage: 12
+  skill1SecondHitDamage: 16
   skill1Radius: 3.2
   skill1CenterOffset: {x: 0, y: 0.8, z: 0}
+  skill1LiftHeight: 0.1
+  skill1ForwardStep: 0.75
+  skill1LiftDuration: 0.12
+  skill1AnimatorTransitionDuration: 0.05
+  skill1StateEnterTimeout: 0.12
+  skill1FirstHitDelay: 0.16
+  skill1SecondHitDelay: 0.42
   skill2Key: 50
   skill2Cooldown: 4.5
   skill2HeartRateCost: 8

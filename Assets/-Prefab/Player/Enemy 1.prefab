@@ -2884,10 +2884,10 @@ MonoBehaviour:
   slopRayExtent: 5
   whatIsGround:
     serializedVersion: 2
-    m_Bits: 256
+    m_Bits: 257
   whatIsObs:
     serializedVersion: 2
-    m_Bits: 256
+    m_Bits: 320
   isOnGround: 0
 --- !u!114 &8006670349869119102
 MonoBehaviour:

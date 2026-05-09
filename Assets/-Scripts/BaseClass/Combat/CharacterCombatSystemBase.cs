@@ -33,6 +33,11 @@ namespace UGG.Combat
         protected virtual void Awake()
         {
             _animator = GetComponent<Animator>();
+            if (_animator == null)
+            {
+                _animator = GetComponentInChildren<Animator>();
+            }
+
             _characterInputSystem = GetComponentInParent<CharacterInputSystem>();
             _characterMovementBase = GetComponentInParent<CharacterMovementBase>();
             _audioSource = _characterMovementBase.GetComponentInChildren<AudioSource>();
