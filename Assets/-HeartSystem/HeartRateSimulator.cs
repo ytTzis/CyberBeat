@@ -35,6 +35,13 @@ public class HeartRateSimulator : MonoBehaviour
 
     private float updateTimer = 0f;
     private float calibrationTimer = 0f;
+    private float runtimeHeartRateOffset = 0f;
+    private bool hasTemporaryHeartRateOverride = false;
+    private float temporaryHeartRateOverride = 0f;
+    private float temporaryHeartRateOverrideTimer = 0f;
+    private float temporaryHeartRateOverrideMinimum = 0f;
+    private bool resetRuntimeOffsetWhenOverrideEnds = false;
+    private float lastKnownRealtimeHeartRate = 0f;
     private List<float> secondSamples = new List<float>();
     private Queue<float> shortWindow = new Queue<float>();
     private Queue<float> longWindow = new Queue<float>();
@@ -77,6 +84,7 @@ public class HeartRateSimulator : MonoBehaviour
 
     private void Update()
     {
+        UpdateTemporaryHeartRateOverride();
         UpdateHeartRateFromRealtimeSource();
 
         updateTimer += Time.deltaTime;
@@ -97,11 +105,94 @@ public class HeartRateSimulator : MonoBehaviour
 
     private void UpdateHeartRateFromRealtimeSource()
     {
+        if (hasTemporaryHeartRateOverride)
+        {
+            currentHeartRate = Mathf.Clamp(temporaryHeartRateOverride, minHeartRate, maxHeartRate);
+            return;
+        }
+
         int realtimeHeartRate = hyperateSocket.CurrentHeartRate;
         if (realtimeHeartRate > 0)
         {
-            currentHeartRate = Mathf.Clamp(realtimeHeartRate, minHeartRate, maxHeartRate);
+            lastKnownRealtimeHeartRate = realtimeHeartRate;
+            currentHeartRate = Mathf.Clamp(realtimeHeartRate + runtimeHeartRateOffset, minHeartRate, maxHeartRate);
         }
+    }
+
+    public void ForceHeartRateForDuration(float targetHeartRate, float durationSeconds, bool restoreToRawRealtimeOnEnd = false, float minimumHeartRateDuringOverride = 0f)
+    {
+        hasTemporaryHeartRateOverride = true;
+        temporaryHeartRateOverride = Mathf.Clamp(targetHeartRate, minHeartRate, maxHeartRate);
+        temporaryHeartRateOverrideTimer = Mathf.Max(0f, durationSeconds);
+        temporaryHeartRateOverrideMinimum = Mathf.Clamp(minimumHeartRateDuringOverride, minHeartRate, temporaryHeartRateOverride);
+        resetRuntimeOffsetWhenOverrideEnds = restoreToRawRealtimeOnEnd;
+        currentHeartRate = temporaryHeartRateOverride;
+    }
+
+    public void ClearForcedHeartRateOverride()
+    {
+        hasTemporaryHeartRateOverride = false;
+        temporaryHeartRateOverrideTimer = 0f;
+        temporaryHeartRateOverrideMinimum = 0f;
+        if (resetRuntimeOffsetWhenOverrideEnds)
+        {
+            runtimeHeartRateOffset = 0f;
+        }
+        resetRuntimeOffsetWhenOverrideEnds = false;
+        RestoreRealtimeHeartRateImmediately();
+    }
+
+    public bool HasTemporaryHeartRateOverride()
+    {
+        return hasTemporaryHeartRateOverride;
+    }
+
+    public bool ConsumeHeartRate(float amount)
+    {
+        if (amount <= 0f)
+        {
+            return true;
+        }
+
+        if (hasTemporaryHeartRateOverride)
+        {
+            float availableOverrideHeartRate = temporaryHeartRateOverride - temporaryHeartRateOverrideMinimum;
+            if (availableOverrideHeartRate <= 0f)
+            {
+                return false;
+            }
+
+            float consumedOverrideAmount = Mathf.Min(amount, availableOverrideHeartRate);
+            if (consumedOverrideAmount < amount)
+            {
+                return false;
+            }
+
+            temporaryHeartRateOverride = Mathf.Clamp(temporaryHeartRateOverride - consumedOverrideAmount, temporaryHeartRateOverrideMinimum, maxHeartRate);
+            currentHeartRate = temporaryHeartRateOverride;
+            return true;
+        }
+
+        float availableHeartRate = currentHeartRate - minHeartRate;
+        if (availableHeartRate <= 0f)
+        {
+            return false;
+        }
+
+        float consumedAmount = Mathf.Min(amount, availableHeartRate);
+        if (hyperateSocket.CurrentHeartRate > 0)
+        {
+            runtimeHeartRateOffset -= consumedAmount;
+            float minimumOffset = minHeartRate - hyperateSocket.CurrentHeartRate;
+            runtimeHeartRateOffset = Mathf.Max(runtimeHeartRateOffset, minimumOffset);
+            currentHeartRate = Mathf.Clamp(hyperateSocket.CurrentHeartRate + runtimeHeartRateOffset, minHeartRate, maxHeartRate);
+        }
+        else
+        {
+            currentHeartRate = Mathf.Clamp(currentHeartRate - consumedAmount, minHeartRate, maxHeartRate);
+        }
+
+        return true;
     }
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
@@ -151,6 +242,36 @@ public class HeartRateSimulator : MonoBehaviour
 
         HR_short = shortWindow.Count > 0 ? shortSum / shortWindow.Count : hr;
         HR_long = longWindow.Count > 0 ? longSum / longWindow.Count : hr;
+    }
+
+    private void UpdateTemporaryHeartRateOverride()
+    {
+        if (!hasTemporaryHeartRateOverride)
+        {
+            return;
+        }
+
+        temporaryHeartRateOverrideTimer -= Time.deltaTime;
+        if (temporaryHeartRateOverrideTimer <= 0f)
+        {
+            ClearForcedHeartRateOverride();
+        }
+    }
+
+    private void RestoreRealtimeHeartRateImmediately()
+    {
+        int realtimeHeartRate = hyperateSocket.CurrentHeartRate;
+        if (realtimeHeartRate > 0)
+        {
+            lastKnownRealtimeHeartRate = realtimeHeartRate;
+            currentHeartRate = Mathf.Clamp(realtimeHeartRate + runtimeHeartRateOffset, minHeartRate, maxHeartRate);
+            return;
+        }
+
+        if (lastKnownRealtimeHeartRate > 0f)
+        {
+            currentHeartRate = Mathf.Clamp(lastKnownRealtimeHeartRate + runtimeHeartRateOffset, minHeartRate, maxHeartRate);
+        }
     }
 
     private void PushShort(float value)

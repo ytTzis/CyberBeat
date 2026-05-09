@@ -24,6 +24,7 @@ namespace UGG.Combat
         };
 
         private PlayerHealthSystem healthSystem;
+        private HighStressSkillController highStressSkillController;
 
         //引用
         [SerializeField] private Transform currentTarget;
@@ -31,6 +32,8 @@ namespace UGG.Combat
         //Speed
         [SerializeField, Header("攻击移动速度倍率"), Range(0.1f, 10f)]
         private float attackMoveMult;
+        [SerializeField, Header("High Stress 伤害倍率"), Min(1f)]
+        private float highStressDamageMultiplier = 1.3f;
         [SerializeField, Header("攻击提前恢复输入时间(0-1)")] [Range(0f, 1f)]
         private float attackRecoverNormalizedTime = 0.6f;
         [SerializeField, Header("攻击锁敌结束时间(0-1)")] [Range(0f, 1f)]
@@ -60,6 +63,7 @@ namespace UGG.Combat
             base.Awake();
 
             healthSystem = GetComponentInParent<PlayerHealthSystem>();
+            highStressSkillController = GetComponentInParent<HighStressSkillController>();
         }
 
         private void Update()
@@ -79,6 +83,12 @@ namespace UGG.Combat
 
         private void PlayerAttackAction()
         {
+            if (IsHighStressSkillLocked())
+            {
+                SetAllowAttackInput(false);
+                return;
+            }
+
             //当玩家处于Motion状态(idle)也允许玩家输入攻击信号
             if (!allowAttackInput)
             {
@@ -117,6 +127,12 @@ namespace UGG.Combat
 
         private void PlayerParryInput()
         {
+            if (IsHighStressSkillLocked())
+            {
+                _animator.SetBool(defenID, false);
+                return;
+            }
+
             if (CanInputParry())
             {
                 _animator.SetBool(defenID, _characterInputSystem.playerDefen);
@@ -279,6 +295,8 @@ namespace UGG.Combat
         /// </summary>
         /// <param name="allow"></param>
         public void SetAllowAttackInput(bool allow) => allowAttackInput = allow;
+
+        public LayerMask GetEnemyLayerMask() => enemyLayer;
         
         #endregion
 
@@ -430,6 +448,23 @@ namespace UGG.Combat
             {
                 DisableUnsupportedUrpChildren(root.GetChild(i));
             }
+        }
+
+        private bool IsHighStressSkillLocked()
+        {
+            return highStressSkillController != null && highStressSkillController.BlocksStandardActions;
+        }
+
+        protected override float GetAttackDamageMultiplier()
+        {
+            HeartRateStateController heartRateStateController = HeartRateStateController.Instance;
+            if (heartRateStateController != null &&
+                heartRateStateController.CurrentState == HeartRateStateController.HeartRateState.HighStress)
+            {
+                return highStressDamageMultiplier;
+            }
+
+            return base.GetAttackDamageMultiplier();
         }
     }
 }

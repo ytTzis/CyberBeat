@@ -1957,6 +1957,7 @@ GameObject:
   - component: {fileID: 3191567288234401092}
   - component: {fileID: 4277240882114777235}
   - component: {fileID: 1141894075}
+  - component: {fileID: -3060988999548699325}
   m_Layer: 9
   m_Name: Player
   m_TagString: Untagged
@@ -2055,6 +2056,13 @@ MonoBehaviour:
   runSpeed: 10
   crouchMoveSpeed: 1.5
   animationMoveSpeedMult: 0
+  hitRecoverNormalizedTime: 0.45
+  dodgeMoveSpeed: 7.5
+  dodgeCooldown: 0.35
+  dodgeAnimationSpeed: 1.25
+  dodgeMoveEndNormalizedTime: 0.72
+  dodgeInvincibleStartNormalizedTime: 0.08
+  dodgeInvincibleEndNormalizedTime: 0.55
   crouchCenter: {x: 0, y: 0.45, z: 0}
   originCenter: {x: 0, y: 0.9, z: 0}
   cameraLookPositionOnCrouch: {x: 0, y: 0.7, z: 0}
@@ -2079,7 +2087,49 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b36170a451e85904589901e457ffbc27, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  deathAnimationName: GhostSamurai_APose_Die01_Inplace
+  deathAnimationClip: {fileID: 7400000, guid: 748c9a734fb2bcd49995f5b536042cd3, type: 3}
+  disableMovementOnDeath: 1
+  disableCombatOnDeath: 1
+  disableInputOnDeath: 1
+  disableCollidersOnDeath: 1
+  disableCharacterControllerOnDeath: 0
+  restoreTimeScaleOnDeath: 1
   hitAnimationMoveMult: 1.1
+  maxHealth: 100
+  currentHealth: 100
+  hitLockReleaseNormalizedTime: 0.35
+--- !u!114 &-3060988999548699325
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3191567288234401097}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4622492d1cd1a4949b2e9cee0528b235, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  skillOrigin: {fileID: 0}
+  enemyLayer:
+    serializedVersion: 2
+    m_Bits: 0
+  shockwaveHitAnimationName: Hit_D_Up
+  dashSlashHitAnimationName: Hit_H_Right
+  skill1Key: 49
+  skill1Cooldown: 3
+  skill1HeartRateCost: 6
+  skill1Damage: 18
+  skill1Radius: 3.2
+  skill1CenterOffset: {x: 0, y: 0.8, z: 0}
+  skill2Key: 50
+  skill2Cooldown: 4.5
+  skill2HeartRateCost: 8
+  skill2Damage: 26
+  skill2DashDistance: 2.5
+  skill2DamageRadius: 1.75
+  skill2CenterOffset: {x: 0, y: 0.8, z: 0}
 --- !u!1 &3191567288251970597
 GameObject:
   m_ObjectHideFlags: 0
@@ -4789,8 +4839,14 @@ MonoBehaviour:
   enemyLayer:
     serializedVersion: 2
     m_Bits: 1152
+  normalAttackDamage: 10
+  heavyAttackDamage: 20
   currentTarget: {fileID: 0}
   attackMoveMult: 3
+  highStressDamageMultiplier: 1.3
+  attackRecoverNormalizedTime: 0.6
+  attackLockReleaseNormalizedTime: 0.55
+  finalAttackMoveRecoverNormalizedTime: 0.85
   detectionCenter: {fileID: 3191567287176109791}
   detectionRang: 1
   allowAttackInput: 0
@@ -4825,6 +4881,7 @@ MonoBehaviour:
   attackVfxOffset: {x: 0, y: 0, z: 1}
   attackVfxRotationOffset: {x: 0, y: 0, z: 0}
   attackVfxLifetime: 2
+  attackVfxTintColor: {r: 1, g: 0.82, b: 0.12, a: 1}
 --- !u!1 &6078316980926850120
 GameObject:
   m_ObjectHideFlags: 0

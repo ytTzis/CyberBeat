@@ -81,12 +81,23 @@ namespace UGG.Combat
 
         private float GetCurrentAttackDamage()
         {
+            float baseDamage;
+
             if (_animator.CheckAnimationTag("GSAttack"))
             {
-                return heavyAttackDamage;
+                baseDamage = heavyAttackDamage;
+            }
+            else
+            {
+                baseDamage = normalAttackDamage;
             }
 
-            return normalAttackDamage;
+            return baseDamage * GetAttackDamageMultiplier();
+        }
+
+        protected virtual float GetAttackDamageMultiplier()
+        {
+            return 1f;
         }
 
         private void PlayerWeaponEffect()

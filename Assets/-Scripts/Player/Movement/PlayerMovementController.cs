@@ -9,6 +9,7 @@ namespace UGG.Move
         private Transform characterCamera;
         private TP_CameraController _tpCameraController;
         private UGG.Combat.PlayerCombatSystem _playerCombatSystem;
+        private UGG.Combat.HighStressSkillController _highStressSkillController;
 
         [SerializeField, Header("相机站立锁定点")] private Transform standCameraLook;
         [SerializeField, Header("相机下蹲锁定点")] private Transform crouchCameraLook;
@@ -62,6 +63,7 @@ namespace UGG.Move
             characterCamera = Camera.main.transform.root.transform;
             _tpCameraController = characterCamera.GetComponent<TP_CameraController>();
             _playerCombatSystem = GetComponentInChildren<UGG.Combat.PlayerCombatSystem>();
+            _highStressSkillController = GetComponent<UGG.Combat.HighStressSkillController>();
         }
 
         protected override void Start()
@@ -93,6 +95,8 @@ namespace UGG.Move
 
         private bool CanMoveContro()
         {
+            if (IsHighStressSkillLocked()) return false;
+
             bool canMoveOnGround = isOnGround && characterAnimator.CheckAnimationTag("Motion");
             bool canMoveOnCrouch = characterAnimator.CheckAnimationTag("CrouchMotion");
             bool canRecoverFromHit = isOnGround &&
@@ -106,6 +110,7 @@ namespace UGG.Move
 
         private bool CanCrouch()
         {
+            if (IsHighStressSkillLocked()) return false;
             if (characterAnimator.CheckAnimationTag("Crouch")) return false;
             if (characterAnimator.GetFloat(runID)>.9f) return false;
             
@@ -193,6 +198,11 @@ namespace UGG.Move
 
         private void UpdateRollAnimation()
         {
+            if (IsHighStressSkillLocked())
+            {
+                return;
+            }
+
             //如果玩家按下翻滚键
             if (_inputSystem.playerRoll && CanStartDodge())
             {
@@ -367,6 +377,11 @@ namespace UGG.Move
             }
 
             return false;
+        }
+
+        private bool IsHighStressSkillLocked()
+        {
+            return _highStressSkillController != null && _highStressSkillController.BlocksStandardActions;
         }
     }
 }

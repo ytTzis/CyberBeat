@@ -2151,8 +2151,12 @@ MonoBehaviour:
   enemyLayer:
     serializedVersion: 2
     m_Bits: 64
+  normalAttackDamage: 10
+  heavyAttackDamage: 20
   detectionCenter: {fileID: 696203276753768059}
   detectionRang: 20
+  visionForwardThreshold: 0.15
+  targetMemoryDuration: 1.35
   whatisEnemy:
     serializedVersion: 2
     m_Bits: 64
@@ -2161,10 +2165,27 @@ MonoBehaviour:
     m_Bits: 256
   currentTarget: {fileID: 0}
   animationMoveMult: 1.5
+  assistedGapCloseSkillName: JumpAttack04_1
+  assistedGapCloseMoveSpeed: 2.6
+  assistedGapCloseEndNormalizedTime: 0.55
+  assistedGapCloseRangeBuffer: 0.15
+  pressureApproachRange: 4.75
+  pressureApproachSpeed: 1.85
+  pressureStopDistanceBuffer: 0.2
   skills:
   - {fileID: 11400000, guid: 1fb622bc5afc9c840957e7202a562f14, type: 2}
   - {fileID: 11400000, guid: 58d84f0e64e94318812d0f6348e539aa, type: 2}
   - {fileID: 11400000, guid: 7d3c632da80b45adabf3ffb93ed0d9ea, type: 2}
+  useRandomSkillSelection: 1
+  repeatSkillWeightMultiplier: 0.45
+  recentSkillWeightMultiplier: 0.7
+  recentSkillMemory: 2
+  distancePreferenceRange: 2.5
+  longRangePreferredSkillName: JumpAttack04_1
+  longRangeThreshold: 3.1
+  longRangePreferredSkillWeightMultiplier: 3
+  closeRangeThreshold: 2.2
+  closeRangePreferredSkillWeightMultiplier: 1.35
 --- !u!1 &4800186396328071394
 GameObject:
   m_ObjectHideFlags: 0
@@ -2810,7 +2831,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 1, z: 0, w: 0}
   m_LocalPosition: {x: 0, y: 0, z: 6.77}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 1.1, y: 1.1, z: 1.1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 7087355985512924494}
@@ -2880,7 +2901,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8f3ce360cbbb074409fd784b10fe84a0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  deathAnimationName: GhostSamurai_Bow_Die01_Inplace
+  deathAnimationClip: {fileID: 7400000, guid: 2ad1c4ffe73ce974a8d478601ef748f6, type: 3}
+  disableMovementOnDeath: 1
+  disableCombatOnDeath: 1
+  disableInputOnDeath: 1
+  disableCollidersOnDeath: 1
+  disableCharacterControllerOnDeath: 0
+  restoreTimeScaleOnDeath: 1
   hitAnimationMoveMult: 1.1
+  maxHealth: 100
+  currentHealth: 100
   maxParryCount: 0
   counterattackParryCount: 0
   maxHitCount: 0

@@ -247,6 +247,14 @@ public class BagInventoryUI : MonoBehaviour
             case "MonstourRed":
                 if (HeartRateStateController.Instance != null)
                 {
+                    HeartRateSimulator heartRateSimulator = HeartRateSimulator.Instance;
+                    if (heartRateSimulator != null)
+                    {
+                        float targetHeartRate = HeartRateStateController.Instance.GetRecommendedHighStressHeartRate(2f);
+                        float normalBoundaryHeartRate = HeartRateStateController.Instance.GetNormalStateBoundaryHeartRate();
+                        heartRateSimulator.ForceHeartRateForDuration(targetHeartRate, 10f, true, normalBoundaryHeartRate);
+                    }
+
                     HeartRateStateController.Instance.ForceStateForDuration(
                         HeartRateStateController.HeartRateState.HighStress,
                         10f);

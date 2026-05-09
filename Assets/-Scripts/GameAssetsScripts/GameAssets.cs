@@ -28,6 +28,22 @@ public class GameAssets : SingletonBase<GameAssets>
         audioSource.Play();
     }
 
+    public void PlaySoundEffectOneShot(AudioSource audioSource, SoundAssetsType soundAssetsType, float volumeScale = 1f)
+    {
+        if (audioSource == null)
+        {
+            return;
+        }
+
+        AudioClip clip = soundAssets.GetClip(soundAssetsType);
+        if (clip == null)
+        {
+            return;
+        }
+
+        audioSource.PlayOneShot(clip, volumeScale);
+    }
+
     
     #endregion
 

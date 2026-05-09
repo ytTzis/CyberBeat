@@ -47,6 +47,11 @@ public class GameSoundAssetsSO : ScriptableObject
         }
     }
 
+    public AudioClip GetClip(SoundAssetsType soundAssetsType)
+    {
+        return GetClipAssets(soundAssetsType);
+    }
+
     
     
     
