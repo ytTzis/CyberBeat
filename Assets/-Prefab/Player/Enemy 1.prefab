@@ -2170,7 +2170,7 @@ MonoBehaviour:
   assistedGapCloseEndNormalizedTime: 0.55
   assistedGapCloseRangeBuffer: 0.15
   pressureApproachRange: 4.75
-  pressureApproachSpeed: 1.85
+  pressureApproachSpeed: 1.3
   pressureStopDistanceBuffer: 0.2
   skills:
   - {fileID: 11400000, guid: 1fb622bc5afc9c840957e7202a562f14, type: 2}

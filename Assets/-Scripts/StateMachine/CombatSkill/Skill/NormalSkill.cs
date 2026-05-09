@@ -6,7 +6,7 @@ using UnityEngine;
 [CreateAssetMenu(fileName = "NormalSkill", menuName = "Skill/NormalSkill")]
 public class NormalSkill : CombatSkillBase
 {
-    [SerializeField] private float aggressiveApproachSpeed = 2.15f;
+    [SerializeField] private float aggressiveApproachSpeed = 1.3f;
     [SerializeField, Min(0f)] private float attackCommitRangeBuffer = 0.2f;
 
     public override void InvokeSkill()

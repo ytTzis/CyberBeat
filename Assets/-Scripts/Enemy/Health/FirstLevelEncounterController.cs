@@ -9,6 +9,7 @@ public class FirstLevelEncounterController : MonoBehaviour
 {
     [Header("Player")]
     [SerializeField] private string playerTag = "Player";
+    [SerializeField, Min(0f)] private float triggerFallbackPadding = 0.4f;
 
     [Header("Encounter Enemies")]
     [SerializeField] private AIHealthSystem enemy1;
@@ -35,6 +36,7 @@ public class FirstLevelEncounterController : MonoBehaviour
     private AICombatSystem enemy2CombatSystem;
     private AIMovement enemy2Movement;
     private Animator enemy2Animator;
+    private Transform playerTransform;
     private int movementParameterId;
     private bool enemy2Activated;
     private bool enemy34Activated;
@@ -55,14 +57,17 @@ public class FirstLevelEncounterController : MonoBehaviour
 
         ConfigureTrigger(area1Trigger, FirstLevelEncounterTrigger.TriggerStage.Area1);
         ConfigureTrigger(area2Trigger, FirstLevelEncounterTrigger.TriggerStage.Area2);
+        CachePlayerTransform();
 
-        SetEnemyCombatEnabled(enemy2, false);
+        EnterEnemy2PatrolState();
         SetEnemyGroupActive(false, enemy3, enemy4);
         DisableManagedEnemyTransitions();
     }
 
     private void Update()
     {
+        CachePlayerTransform();
+        UpdateAreaTriggerFallbacks();
         UpdateEnemy2Patrol();
 
         if (transitionStarted || !enemy34Activated)
@@ -95,6 +100,56 @@ public class FirstLevelEncounterController : MonoBehaviour
         return otherRoot != null && otherRoot.CompareTag(playerTag);
     }
 
+    private void CachePlayerTransform()
+    {
+        if (playerTransform != null)
+        {
+            return;
+        }
+
+        PlayerHealthSystem playerHealthSystem = FindFirstObjectByType<PlayerHealthSystem>();
+        if (playerHealthSystem != null)
+        {
+            playerTransform = playerHealthSystem.transform;
+        }
+    }
+
+    private void UpdateAreaTriggerFallbacks()
+    {
+        if (playerTransform == null)
+        {
+            return;
+        }
+
+        if (!enemy2Activated && enemy1 != null && enemy1.IsDead() && IsPlayerInsideTrigger(area1Trigger))
+        {
+            TryActivateEnemy2();
+        }
+
+        if (!enemy34Activated && enemy2 != null && enemy2.IsDead() && IsPlayerInsideTrigger(area2Trigger))
+        {
+            TryActivateEnemy34();
+        }
+    }
+
+    private bool IsPlayerInsideTrigger(FirstLevelEncounterTrigger trigger)
+    {
+        if (trigger == null || !trigger.isActiveAndEnabled)
+        {
+            return false;
+        }
+
+        Collider triggerCollider = trigger.GetComponent<Collider>();
+        if (triggerCollider == null || !triggerCollider.enabled)
+        {
+            return false;
+        }
+
+        Bounds bounds = triggerCollider.bounds;
+        bounds.Expand(triggerFallbackPadding);
+        return bounds.Contains(playerTransform.position);
+    }
+
     public void NotifyAreaTriggered(FirstLevelEncounterTrigger.TriggerStage triggerStage)
     {
         switch (triggerStage)
@@ -112,13 +167,12 @@ public class FirstLevelEncounterController : MonoBehaviour
     {
         if (enemy2Activated || enemy1 == null || !enemy1.IsDead())
         {
-            Debug.Log($"[FirstLevelEncounter] Area1 triggered but Enemy2 was not activated. enemy2Activated={enemy2Activated}, enemy1Assigned={enemy1 != null}, enemy1Dead={(enemy1 != null && enemy1.IsDead())}", this);
+            Debug.Log($"[FirstLevelEncounter] Area1 ignored. enemy2Activated={enemy2Activated}, enemy1Assigned={enemy1 != null}, enemy1Dead={(enemy1 != null && enemy1.IsDead())}", this);
             return;
         }
 
-        enemy2Activated = true;
-        SetEnemyCombatEnabled(enemy2, true);
-        Debug.Log("[FirstLevelEncounter] Enemy2 activated and switched to combat logic.", this);
+        EnterEnemy2CombatState();
+        Debug.Log("[FirstLevelEncounter] Enemy2 switched from patrol to combat.", this);
 
         if (area1Trigger != null)
         {
@@ -130,13 +184,11 @@ public class FirstLevelEncounterController : MonoBehaviour
     {
         if (enemy34Activated || enemy2 == null || !enemy2.IsDead())
         {
-            Debug.Log($"[FirstLevelEncounter] Area2 triggered but Enemy3/Enemy4 were not activated. enemy34Activated={enemy34Activated}, enemy2Assigned={enemy2 != null}, enemy2Dead={(enemy2 != null && enemy2.IsDead())}", this);
             return;
         }
 
         enemy34Activated = true;
         SetEnemyGroupActive(true, enemy3, enemy4);
-        Debug.Log("[FirstLevelEncounter] Enemy3 and Enemy4 activated.", this);
 
         if (area2Trigger != null)
         {
@@ -217,6 +269,29 @@ public class FirstLevelEncounterController : MonoBehaviour
         }
     }
 
+    private void EnterEnemy2PatrolState()
+    {
+        enemy2Activated = false;
+        SetEnemyCombatEnabled(enemy2, false);
+    }
+
+    private void EnterEnemy2CombatState()
+    {
+        enemy2Activated = true;
+        SetEnemyCombatEnabled(enemy2, true);
+
+        if (enemy2Animator != null)
+        {
+            enemy2Animator.SetFloat(movementParameterId, 0f);
+            enemy2Animator.SetFloat("LockOn", 0f);
+        }
+
+        if (enemy2CombatSystem != null)
+        {
+            Debug.Log($"[FirstLevelEncounter] Enemy2 combat enabled={enemy2CombatSystem.enabled}.", enemy2CombatSystem);
+        }
+    }
+
     private void SetEnemyCombatEnabled(AIHealthSystem healthSystem, bool isEnabled)
     {
         if (healthSystem == null)
@@ -224,16 +299,30 @@ public class FirstLevelEncounterController : MonoBehaviour
             return;
         }
 
-        AICombatSystem combatSystem = healthSystem.GetComponentInChildren<AICombatSystem>(true);
+        AICombatSystem combatSystem = healthSystem == enemy2 && enemy2CombatSystem != null
+            ? enemy2CombatSystem
+            : healthSystem.GetComponentInChildren<AICombatSystem>(true);
+
         if (combatSystem != null)
         {
             combatSystem.SetCombatLogicEnabled(isEnabled);
         }
 
-        Animator animator = healthSystem.GetComponentInChildren<Animator>(true);
-        if (animator != null && !isEnabled)
+        Animator animator = healthSystem == enemy2 && enemy2Animator != null
+            ? enemy2Animator
+            : healthSystem.GetComponentInChildren<Animator>(true);
+
+        if (animator != null)
         {
-            animator.SetFloat("LockOn", 0f);
+            if (!isEnabled)
+            {
+                animator.SetFloat("LockOn", 0f);
+            }
+
+            if (!isEnabled && healthSystem == enemy2)
+            {
+                animator.SetFloat(movementParameterId, 0f);
+            }
         }
     }
 

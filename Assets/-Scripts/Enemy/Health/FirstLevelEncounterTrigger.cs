@@ -30,17 +30,16 @@ public class FirstLevelEncounterTrigger : MonoBehaviour
     {
         if (encounterController == null)
         {
+            Debug.LogWarning($"[FirstLevelEncounterTrigger] {name} has no encounter controller reference.", this);
             return;
         }
-
-        Debug.Log($"[FirstLevelEncounterTrigger] {name} entered by {other.name}", this);
 
         if (!encounterController.IsPlayerCollider(other))
         {
-            Debug.Log($"[FirstLevelEncounterTrigger] {name} ignored collider {other.name} because it is not recognized as Player.", this);
             return;
         }
 
+        Debug.Log($"[FirstLevelEncounterTrigger] {name} triggered by player.", this);
         encounterController.NotifyAreaTriggered(triggerStage);
     }
 }

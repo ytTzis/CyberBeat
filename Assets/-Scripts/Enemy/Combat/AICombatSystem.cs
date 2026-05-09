@@ -75,10 +75,10 @@ public class AICombatSystem : CharacterCombatSystemBase
 
         AIView();
         LockOnTarget();
-        UpdateAnimationMove();
         DetectionTarget();
         UpdateTargetMemory();
         UpdateCombatSkill();
+        UpdateAnimationMove();
     }
 
     private void LateUpdate()
@@ -191,13 +191,6 @@ public class AICombatSystem : CharacterCombatSystemBase
 
         CombatSkillBase nextSkill = GetNextDoneSkill();
         if (nextSkill == null)
-        {
-            return;
-        }
-
-        // Let pressure approach handle gap-closing so skills only fire once
-        // the enemy is already in a valid attack range.
-        if (GetCurrentTargetDistance() > nextSkill.GetSkillUseDistance())
         {
             return;
         }
