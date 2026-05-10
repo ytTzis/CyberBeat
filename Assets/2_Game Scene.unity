@@ -43541,6 +43541,66 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+  subwayExit: {fileID: 1605384180}
+  openHeight: 4
+  openDuration: 2.8
+  openCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  playSubwayExitFocusShot: 1
+  subwayExitFocusLookHeight: 1
+  subwayExitFocusStartOffset: {x: 0, y: 0, z: -5.2}
+  subwayExitFocusEndOffset: {x: 0, y: 0, z: -4.2}
+  subwayExitFocusOrbitAngle: 0
+  subwayExitFocusDuration: 1.8
+  subwayExitFocusHoldDuration: 0.35
+  subwayExitFocusUseTargetRotation: 1
+  subwayExitFocusInvertTargetRotation: 1
+  subwayExitFocusTransitionCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
 --- !u!1001 &865062986
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -59623,6 +59683,10 @@ PrefabInstance:
     - target: {fileID: 7938225714646745358, guid: 4a360fc563e0c4e4896f24a1ddcb030d, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8006670349869119102, guid: 4a360fc563e0c4e4896f24a1ddcb030d, type: 3}
+      propertyPath: currentHealth
+      value: 100
       objectReference: {fileID: 0}
     - target: {fileID: 8013912011865212533, guid: 4a360fc563e0c4e4896f24a1ddcb030d, type: 3}
       propertyPath: m_Layer
@@ -81771,7 +81835,7 @@ GameObject:
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
-  m_StaticEditorFlags: 4294967295
+  m_StaticEditorFlags: 0
   m_IsActive: 1
 --- !u!65 &1605384177
 BoxCollider:

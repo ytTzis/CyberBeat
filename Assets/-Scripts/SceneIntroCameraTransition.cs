@@ -15,6 +15,7 @@ public class SceneIntroCameraTransition : MonoBehaviour
         public float HoldDuration;
         public bool UseTargetRotation;
         public bool InvertTargetRotation;
+        public bool LockTargetTransform;
         public AnimationCurve TransitionCurve;
     }
 
@@ -284,6 +285,7 @@ public class SceneIntroCameraTransition : MonoBehaviour
             HoldDuration = focusHoldDuration,
             UseTargetRotation = focusUseTargetRotation,
             InvertTargetRotation = false,
+            LockTargetTransform = false,
             TransitionCurve = focusTransitionCurve
         };
     }
@@ -333,9 +335,9 @@ public class SceneIntroCameraTransition : MonoBehaviour
         return target.position + Vector3.up * lookHeight;
     }
 
-    private Vector3 GetFocusLookPoint(Transform activeFocusTarget, FocusShotSettings focusSettings)
+    private Vector3 GetFocusLookPoint(Vector3 referencePosition, FocusShotSettings focusSettings)
     {
-        return activeFocusTarget.position + Vector3.up * focusSettings.LookHeight;
+        return referencePosition + Vector3.up * focusSettings.LookHeight;
     }
 
     private Vector3 GetCameraOffset(Vector3 offset, Quaternion extraRotation)
@@ -353,9 +355,9 @@ public class SceneIntroCameraTransition : MonoBehaviour
         return baseRotation * extraRotation * offset;
     }
 
-    private Vector3 GetFocusOffset(Transform activeFocusTarget, Vector3 offset, Quaternion extraRotation, FocusShotSettings focusSettings)
+    private Vector3 GetFocusOffset(float referenceYaw, Vector3 offset, Quaternion extraRotation, FocusShotSettings focusSettings)
     {
-        float targetYaw = activeFocusTarget.eulerAngles.y;
+        float targetYaw = referenceYaw;
         if (focusSettings.InvertTargetRotation)
         {
             targetYaw += 180f;
@@ -371,6 +373,8 @@ public class SceneIntroCameraTransition : MonoBehaviour
     private IEnumerator PlayFocusShot(Transform activeFocusTarget, FocusShotSettings focusSettings)
     {
         float timer = 0f;
+        Vector3 lockedTargetPosition = activeFocusTarget.position;
+        float lockedTargetYaw = activeFocusTarget.eulerAngles.y;
 
         while (timer < focusSettings.Duration)
         {
@@ -383,15 +387,19 @@ public class SceneIntroCameraTransition : MonoBehaviour
             Vector3 currentOffset = Vector3.Lerp(focusSettings.StartOffset, focusSettings.EndOffset, curvedProgress);
             Quaternion orbitRotation = Quaternion.Euler(0f, currentOrbitAngle, 0f);
 
-            Vector3 lookPoint = GetFocusLookPoint(activeFocusTarget, focusSettings);
-            cameraTransform.position = lookPoint + GetFocusOffset(activeFocusTarget, currentOffset, orbitRotation, focusSettings);
+            Vector3 referencePosition = focusSettings.LockTargetTransform ? lockedTargetPosition : activeFocusTarget.position;
+            float referenceYaw = focusSettings.LockTargetTransform ? lockedTargetYaw : activeFocusTarget.eulerAngles.y;
+            Vector3 lookPoint = GetFocusLookPoint(referencePosition, focusSettings);
+            cameraTransform.position = lookPoint + GetFocusOffset(referenceYaw, currentOffset, orbitRotation, focusSettings);
             cameraTransform.rotation = Quaternion.LookRotation(lookPoint - cameraTransform.position, Vector3.up);
 
             yield return null;
         }
 
-        Vector3 finalLookPoint = GetFocusLookPoint(activeFocusTarget, focusSettings);
-        cameraTransform.position = finalLookPoint + GetFocusOffset(activeFocusTarget, focusSettings.EndOffset, Quaternion.identity, focusSettings);
+        Vector3 finalReferencePosition = focusSettings.LockTargetTransform ? lockedTargetPosition : activeFocusTarget.position;
+        float finalReferenceYaw = focusSettings.LockTargetTransform ? lockedTargetYaw : activeFocusTarget.eulerAngles.y;
+        Vector3 finalLookPoint = GetFocusLookPoint(finalReferencePosition, focusSettings);
+        cameraTransform.position = finalLookPoint + GetFocusOffset(finalReferenceYaw, focusSettings.EndOffset, Quaternion.identity, focusSettings);
         cameraTransform.rotation = Quaternion.LookRotation(finalLookPoint - cameraTransform.position, Vector3.up);
 
         if (focusSettings.HoldDuration > 0f)
