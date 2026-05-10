@@ -1,5 +1,6 @@
 using System.Collections;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 public class SceneIntroCameraTransition : MonoBehaviour
@@ -18,6 +19,18 @@ public class SceneIntroCameraTransition : MonoBehaviour
     [SerializeField, InspectorName("Orbit Angle")] private float orbitAngle = 35f;
     [SerializeField, InspectorName("Duration")] private float duration = 2.5f;
     [SerializeField, InspectorName("Transition Curve")] private AnimationCurve transitionCurve = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
+    [SerializeField, Header("Focus Shot"), InspectorName("Enable Focus Shot")] private bool enableFocusShot;
+    [SerializeField, InspectorName("Focus Target")] private Transform focusTarget;
+    [SerializeField, InspectorName("Focus Look Height")] private float focusLookHeight = 0.2f;
+    [SerializeField, InspectorName("Focus Start Offset")] private Vector3 focusStartOffset = new Vector3(0.6f, 0.4f, -2.2f);
+    [SerializeField, InspectorName("Focus End Offset")] private Vector3 focusEndOffset = new Vector3(0f, 0.25f, -1.15f);
+    [SerializeField, InspectorName("Focus Orbit Angle")] private float focusOrbitAngle = 12f;
+    [SerializeField, InspectorName("Focus Duration")] private float focusDuration = 1.2f;
+    [SerializeField, InspectorName("Focus Hold Duration")] private float focusHoldDuration = 0.45f;
+    [SerializeField, InspectorName("Focus Use Target Rotation")] private bool focusUseTargetRotation = true;
+    [SerializeField, InspectorName("Restrict Focus Shot To Scene")] private bool restrictFocusShotToScene = true;
+    [SerializeField, InspectorName("Focus Shot Scene Name")] private string focusShotSceneName = "2_Game Scene";
+    [SerializeField, InspectorName("Focus Transition Curve")] private AnimationCurve focusTransitionCurve = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
 
     [SerializeField, Header("Control"), InspectorName("Disable Player Input")] private bool disablePlayerInput = true;
     [SerializeField, InspectorName("Disable Camera Controllers")] private bool disableCameraControllers = true;
@@ -145,6 +158,11 @@ public class SceneIntroCameraTransition : MonoBehaviour
         cameraTransform.position = finalLookPoint + GetCameraOffset(endOffset, Quaternion.identity);
         cameraTransform.rotation = Quaternion.LookRotation(finalLookPoint - cameraTransform.position, Vector3.up);
 
+        if (ShouldPlayFocusShot())
+        {
+            yield return PlayFocusShot();
+        }
+
         if (ShouldRestoreCameraWhenFinished())
         {
             if (fadeWhenFinished)
@@ -175,6 +193,21 @@ public class SceneIntroCameraTransition : MonoBehaviour
     private bool ShouldRestoreCameraWhenFinished()
     {
         return restoreCameraWhenFinished || disableCameraControllers;
+    }
+
+    private bool ShouldPlayFocusShot()
+    {
+        if (!enableFocusShot || focusTarget == null || cameraTransform == null)
+        {
+            return false;
+        }
+
+        if (!restrictFocusShotToScene)
+        {
+            return true;
+        }
+
+        return SceneManager.GetActiveScene().name == focusShotSceneName;
     }
 
     private void ResolveReferences(bool forceRefresh = false)
@@ -222,6 +255,11 @@ public class SceneIntroCameraTransition : MonoBehaviour
         return target.position + Vector3.up * lookHeight;
     }
 
+    private Vector3 GetFocusLookPoint()
+    {
+        return focusTarget.position + Vector3.up * focusLookHeight;
+    }
+
     private Vector3 GetCameraOffset(Vector3 offset, Quaternion extraRotation)
     {
         float targetYaw = target.eulerAngles.y;
@@ -235,6 +273,46 @@ public class SceneIntroCameraTransition : MonoBehaviour
             : Quaternion.identity;
 
         return baseRotation * extraRotation * offset;
+    }
+
+    private Vector3 GetFocusOffset(Vector3 offset, Quaternion extraRotation)
+    {
+        Quaternion baseRotation = focusUseTargetRotation
+            ? Quaternion.Euler(0f, focusTarget.eulerAngles.y, 0f)
+            : Quaternion.identity;
+
+        return baseRotation * extraRotation * offset;
+    }
+
+    private IEnumerator PlayFocusShot()
+    {
+        float timer = 0f;
+
+        while (timer < focusDuration)
+        {
+            timer += Time.unscaledDeltaTime;
+            float progress = Mathf.Clamp01(timer / Mathf.Max(focusDuration, Mathf.Epsilon));
+            float curvedProgress = focusTransitionCurve.Evaluate(progress);
+
+            float currentOrbitAngle = Mathf.Lerp(focusOrbitAngle, 0f, curvedProgress);
+            Vector3 currentOffset = Vector3.Lerp(focusStartOffset, focusEndOffset, curvedProgress);
+            Quaternion orbitRotation = Quaternion.Euler(0f, currentOrbitAngle, 0f);
+
+            Vector3 lookPoint = GetFocusLookPoint();
+            cameraTransform.position = lookPoint + GetFocusOffset(currentOffset, orbitRotation);
+            cameraTransform.rotation = Quaternion.LookRotation(lookPoint - cameraTransform.position, Vector3.up);
+
+            yield return null;
+        }
+
+        Vector3 finalLookPoint = GetFocusLookPoint();
+        cameraTransform.position = finalLookPoint + GetFocusOffset(focusEndOffset, Quaternion.identity);
+        cameraTransform.rotation = Quaternion.LookRotation(finalLookPoint - cameraTransform.position, Vector3.up);
+
+        if (focusHoldDuration > 0f)
+        {
+            yield return new WaitForSecondsRealtime(focusHoldDuration);
+        }
     }
 
     private void CacheAndDisableControls()
