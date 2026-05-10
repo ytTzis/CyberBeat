@@ -14123,7 +14123,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 1262074595947268, guid: 4dee7236209353b4887a08d8f15c0ff1, type: 3}
       propertyPath: m_Name
-      value: Terminal_01 (1)
+      value: Interactive Items
       objectReference: {fileID: 0}
     - target: {fileID: 4296663965313894, guid: 4dee7236209353b4887a08d8f15c0ff1, type: 3}
       propertyPath: m_RootOrder
@@ -14176,7 +14176,13 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 1262074595947268, guid: 4dee7236209353b4887a08d8f15c0ff1, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 864689174}
+    - targetCorrespondingSourceObject: {fileID: 1262074595947268, guid: 4dee7236209353b4887a08d8f15c0ff1, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 864689175}
   m_SourcePrefab: {fileID: 100100000, guid: 4dee7236209353b4887a08d8f15c0ff1, type: 3}
 --- !u!1001 &286866192
 PrefabInstance:
@@ -43435,11 +43441,106 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 95fffc006aad6ef40a00d056670d68b9, type: 3}
+--- !u!1 &864689170 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 1262074595947268, guid: 4dee7236209353b4887a08d8f15c0ff1, type: 3}
+  m_PrefabInstance: {fileID: 286068123}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &864689173 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 4296663965313894, guid: 4dee7236209353b4887a08d8f15c0ff1, type: 3}
   m_PrefabInstance: {fileID: 286068123}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &864689174
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 864689170}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e01bff9d882d8374db03fa01c1383070, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  restrictToScene: 1
+  sceneName: 2_Game Scene
+  promptRadius: 3
+  interactRadius: 1.5
+  playerTag: Player
+  nearbyPrompt: Approach it and press F to interact
+  interactPrompt: Press F
+  interactionKey: 102
+  promptFont: {fileID: 11400000, guid: ecd2d7f32e4cf1c41a959f3da193eca8, type: 2}
+  promptFontMaterial: {fileID: 0}
+  promptFontSize: 34
+  promptTextColor: {r: 0.93, g: 0.96, b: 1, a: 1}
+  allowRepeatedInteraction: 0
+  onInteract:
+    m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 864689175}
+        m_TargetAssemblyTypeName: Scene2RevealEnemyAndFocus, Assembly-CSharp
+        m_MethodName: RevealEnemyAndPlayFocus
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+--- !u!114 &864689175
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 864689170}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 055f4b170ad7bbd42a3e9a7a63c47caa, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  restrictToScene: 1
+  sceneName: 2_Game Scene
+  enemyToReveal: {fileID: 1906292269}
+  cameraTransition: {fileID: 576810848}
+  hideOnStart: 1
+  allowOnlyOnce: 1
+  focusLookHeight: 1.2
+  focusStartOffset: {x: 0.8, y: 1.6, z: -5.5}
+  focusEndOffset: {x: 0.3, y: 1.1, z: -4}
+  focusOrbitAngle: 10
+  focusDuration: 1.2
+  focusHoldDuration: 0.45
+  focusUseTargetRotation: 1
+  focusInvertTargetRotation: 1
+  focusTransitionCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
 --- !u!1001 &865062986
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -59485,7 +59586,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7938225714646745358, guid: 4a360fc563e0c4e4896f24a1ddcb030d, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -15.1
+      value: -24.992
       objectReference: {fileID: 0}
     - target: {fileID: 7938225714646745358, guid: 4a360fc563e0c4e4896f24a1ddcb030d, type: 3}
       propertyPath: m_LocalPosition.y
@@ -59493,11 +59594,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7938225714646745358, guid: 4a360fc563e0c4e4896f24a1ddcb030d, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 5.473
+      value: 2.805
       objectReference: {fileID: 0}
     - target: {fileID: 7938225714646745358, guid: 4a360fc563e0c4e4896f24a1ddcb030d, type: 3}
       propertyPath: m_LocalRotation.w
-      value: 0
+      value: 0.7071068
       objectReference: {fileID: 0}
     - target: {fileID: 7938225714646745358, guid: 4a360fc563e0c4e4896f24a1ddcb030d, type: 3}
       propertyPath: m_LocalRotation.x
@@ -59505,7 +59606,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7938225714646745358, guid: 4a360fc563e0c4e4896f24a1ddcb030d, type: 3}
       propertyPath: m_LocalRotation.y
-      value: 1
+      value: 0.7071068
       objectReference: {fileID: 0}
     - target: {fileID: 7938225714646745358, guid: 4a360fc563e0c4e4896f24a1ddcb030d, type: 3}
       propertyPath: m_LocalRotation.z
@@ -59517,7 +59618,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7938225714646745358, guid: 4a360fc563e0c4e4896f24a1ddcb030d, type: 3}
       propertyPath: m_LocalEulerAnglesHint.y
-      value: 180
+      value: 90
       objectReference: {fileID: 0}
     - target: {fileID: 7938225714646745358, guid: 4a360fc563e0c4e4896f24a1ddcb030d, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
@@ -94325,6 +94426,11 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 4.000001, y: 4, z: 0.11611683}
   m_Center: {x: 0, y: 2, z: -0.028564367}
+--- !u!1 &1906292269 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 5865498518002264471, guid: 4a360fc563e0c4e4896f24a1ddcb030d, type: 3}
+  m_PrefabInstance: {fileID: 1188145887}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &1906736504
 PrefabInstance:
   m_ObjectHideFlags: 0

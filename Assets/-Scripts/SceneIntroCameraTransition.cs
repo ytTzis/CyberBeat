@@ -5,6 +5,19 @@ using UnityEngine.UI;
 
 public class SceneIntroCameraTransition : MonoBehaviour
 {
+    public struct FocusShotSettings
+    {
+        public float LookHeight;
+        public Vector3 StartOffset;
+        public Vector3 EndOffset;
+        public float OrbitAngle;
+        public float Duration;
+        public float HoldDuration;
+        public bool UseTargetRotation;
+        public bool InvertTargetRotation;
+        public AnimationCurve TransitionCurve;
+    }
+
     private static bool forcePlayNextIntro;
 
     [SerializeField, InspectorName("Play On Start")] private bool playOnStart = true;
@@ -102,6 +115,36 @@ public class SceneIntroCameraTransition : MonoBehaviour
         transitionCoroutine = StartCoroutine(IntroRoutine());
     }
 
+    public void PlayTemporaryFocusShot(Transform temporaryFocusTarget)
+    {
+        FocusShotSettings settings = CreateFocusShotSettings();
+        PlayTemporaryFocusShot(temporaryFocusTarget, settings);
+    }
+
+    public void PlayTemporaryFocusShot(Transform temporaryFocusTarget, FocusShotSettings focusSettings)
+    {
+        ResolveReferences(forceRefresh: true);
+
+        if (temporaryFocusTarget == null || cameraTransform == null)
+        {
+            Debug.LogWarning("[SceneIntroCameraTransition] Missing temporary focus target or camera transform, focus shot cannot play.", this);
+            return;
+        }
+
+        if (delayedPlayCoroutine != null)
+        {
+            StopCoroutine(delayedPlayCoroutine);
+            delayedPlayCoroutine = null;
+        }
+
+        if (transitionCoroutine != null)
+        {
+            StopCoroutine(transitionCoroutine);
+        }
+
+        transitionCoroutine = StartCoroutine(TemporaryFocusRoutine(temporaryFocusTarget, focusSettings));
+    }
+
     private IEnumerator PlayIntroWhenReady()
     {
         // Give the scene one frame to finish object initialization after loading.
@@ -160,7 +203,7 @@ public class SceneIntroCameraTransition : MonoBehaviour
 
         if (ShouldPlayFocusShot())
         {
-            yield return PlayFocusShot();
+            yield return PlayFocusShot(focusTarget, CreateFocusShotSettings());
         }
 
         if (ShouldRestoreCameraWhenFinished())
@@ -190,6 +233,25 @@ public class SceneIntroCameraTransition : MonoBehaviour
         transitionCoroutine = null;
     }
 
+    private IEnumerator TemporaryFocusRoutine(Transform temporaryFocusTarget, FocusShotSettings focusSettings)
+    {
+        CacheAndDisableControls();
+
+        originalCameraPosition = cameraTransform.position;
+        originalCameraRotation = cameraTransform.rotation;
+
+        yield return PlayFocusShot(temporaryFocusTarget, focusSettings);
+
+        if (ShouldRestoreCameraWhenFinished())
+        {
+            cameraTransform.position = originalCameraPosition;
+            cameraTransform.rotation = originalCameraRotation;
+        }
+
+        RestoreControls();
+        transitionCoroutine = null;
+    }
+
     private bool ShouldRestoreCameraWhenFinished()
     {
         return restoreCameraWhenFinished || disableCameraControllers;
@@ -208,6 +270,22 @@ public class SceneIntroCameraTransition : MonoBehaviour
         }
 
         return SceneManager.GetActiveScene().name == focusShotSceneName;
+    }
+
+    private FocusShotSettings CreateFocusShotSettings()
+    {
+        return new FocusShotSettings
+        {
+            LookHeight = focusLookHeight,
+            StartOffset = focusStartOffset,
+            EndOffset = focusEndOffset,
+            OrbitAngle = focusOrbitAngle,
+            Duration = focusDuration,
+            HoldDuration = focusHoldDuration,
+            UseTargetRotation = focusUseTargetRotation,
+            InvertTargetRotation = false,
+            TransitionCurve = focusTransitionCurve
+        };
     }
 
     private void ResolveReferences(bool forceRefresh = false)
@@ -255,9 +333,9 @@ public class SceneIntroCameraTransition : MonoBehaviour
         return target.position + Vector3.up * lookHeight;
     }
 
-    private Vector3 GetFocusLookPoint()
+    private Vector3 GetFocusLookPoint(Transform activeFocusTarget, FocusShotSettings focusSettings)
     {
-        return focusTarget.position + Vector3.up * focusLookHeight;
+        return activeFocusTarget.position + Vector3.up * focusSettings.LookHeight;
     }
 
     private Vector3 GetCameraOffset(Vector3 offset, Quaternion extraRotation)
@@ -275,43 +353,50 @@ public class SceneIntroCameraTransition : MonoBehaviour
         return baseRotation * extraRotation * offset;
     }
 
-    private Vector3 GetFocusOffset(Vector3 offset, Quaternion extraRotation)
+    private Vector3 GetFocusOffset(Transform activeFocusTarget, Vector3 offset, Quaternion extraRotation, FocusShotSettings focusSettings)
     {
-        Quaternion baseRotation = focusUseTargetRotation
-            ? Quaternion.Euler(0f, focusTarget.eulerAngles.y, 0f)
+        float targetYaw = activeFocusTarget.eulerAngles.y;
+        if (focusSettings.InvertTargetRotation)
+        {
+            targetYaw += 180f;
+        }
+
+        Quaternion baseRotation = focusSettings.UseTargetRotation
+            ? Quaternion.Euler(0f, targetYaw, 0f)
             : Quaternion.identity;
 
         return baseRotation * extraRotation * offset;
     }
 
-    private IEnumerator PlayFocusShot()
+    private IEnumerator PlayFocusShot(Transform activeFocusTarget, FocusShotSettings focusSettings)
     {
         float timer = 0f;
 
-        while (timer < focusDuration)
+        while (timer < focusSettings.Duration)
         {
             timer += Time.unscaledDeltaTime;
-            float progress = Mathf.Clamp01(timer / Mathf.Max(focusDuration, Mathf.Epsilon));
-            float curvedProgress = focusTransitionCurve.Evaluate(progress);
+            float progress = Mathf.Clamp01(timer / Mathf.Max(focusSettings.Duration, Mathf.Epsilon));
+            AnimationCurve curve = focusSettings.TransitionCurve ?? AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
+            float curvedProgress = curve.Evaluate(progress);
 
-            float currentOrbitAngle = Mathf.Lerp(focusOrbitAngle, 0f, curvedProgress);
-            Vector3 currentOffset = Vector3.Lerp(focusStartOffset, focusEndOffset, curvedProgress);
+            float currentOrbitAngle = Mathf.Lerp(focusSettings.OrbitAngle, 0f, curvedProgress);
+            Vector3 currentOffset = Vector3.Lerp(focusSettings.StartOffset, focusSettings.EndOffset, curvedProgress);
             Quaternion orbitRotation = Quaternion.Euler(0f, currentOrbitAngle, 0f);
 
-            Vector3 lookPoint = GetFocusLookPoint();
-            cameraTransform.position = lookPoint + GetFocusOffset(currentOffset, orbitRotation);
+            Vector3 lookPoint = GetFocusLookPoint(activeFocusTarget, focusSettings);
+            cameraTransform.position = lookPoint + GetFocusOffset(activeFocusTarget, currentOffset, orbitRotation, focusSettings);
             cameraTransform.rotation = Quaternion.LookRotation(lookPoint - cameraTransform.position, Vector3.up);
 
             yield return null;
         }
 
-        Vector3 finalLookPoint = GetFocusLookPoint();
-        cameraTransform.position = finalLookPoint + GetFocusOffset(focusEndOffset, Quaternion.identity);
+        Vector3 finalLookPoint = GetFocusLookPoint(activeFocusTarget, focusSettings);
+        cameraTransform.position = finalLookPoint + GetFocusOffset(activeFocusTarget, focusSettings.EndOffset, Quaternion.identity, focusSettings);
         cameraTransform.rotation = Quaternion.LookRotation(finalLookPoint - cameraTransform.position, Vector3.up);
 
-        if (focusHoldDuration > 0f)
+        if (focusSettings.HoldDuration > 0f)
         {
-            yield return new WaitForSecondsRealtime(focusHoldDuration);
+            yield return new WaitForSecondsRealtime(focusSettings.HoldDuration);
         }
     }
 
