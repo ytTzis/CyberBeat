@@ -31,6 +31,7 @@ public class BagInventoryUI : MonoBehaviour
     private Transform playerTarget;
     private Sprite[] collectedIcons;
     private string[] collectedItemIds;
+    private InventoryManager inventoryManager;
 
     private void Awake()
     {
@@ -41,10 +42,11 @@ public class BagInventoryUI : MonoBehaviour
         }
 
         Instance = this;
+        inventoryManager = InventoryManager.EnsureInstance();
         CacheSlots();
         collectedIcons = new Sprite[slotCount];
         collectedItemIds = new string[slotCount];
-        RefreshSlots();
+        RebuildInventoryFromManager();
         playerTarget = FindPlayerTarget();
     }
 
@@ -72,16 +74,76 @@ public class BagInventoryUI : MonoBehaviour
 
     public bool TryAddItem(Sprite icon, string itemId)
     {
-        if (collectedCount >= slotImages.Length)
+        if (inventoryManager == null)
+        {
+            inventoryManager = InventoryManager.EnsureInstance();
+        }
+
+        if (inventoryManager == null || !inventoryManager.TryAddItem(itemId, slotImages.Length))
         {
             return false;
         }
 
-        collectedIcons[collectedCount] = icon;
-        collectedItemIds[collectedCount] = itemId;
-        collectedCount++;
-        RefreshSlots();
+        RebuildInventoryFromManager();
         return true;
+    }
+
+    private void RebuildInventoryFromManager()
+    {
+        if (collectedIcons == null || collectedItemIds == null)
+        {
+            return;
+        }
+
+        System.Array.Clear(collectedIcons, 0, collectedIcons.Length);
+        System.Array.Clear(collectedItemIds, 0, collectedItemIds.Length);
+
+        if (inventoryManager == null)
+        {
+            collectedCount = 0;
+            selectedSlotIndex = 0;
+            RefreshSlots();
+            return;
+        }
+
+        collectedCount = Mathf.Min(inventoryManager.ItemCount, collectedItemIds.Length);
+        selectedSlotIndex = Mathf.Clamp(inventoryManager.SelectedSlotIndex, 0, Mathf.Max(0, slotCount - 1));
+
+        for (int i = 0; i < collectedCount; i++)
+        {
+            string itemId = inventoryManager.ItemIds[i];
+            collectedItemIds[i] = itemId;
+            ItemIconEntry entry = FindItemIconEntry(itemId);
+            collectedIcons[i] = entry != null ? entry.icon : null;
+        }
+
+        RefreshSlots();
+    }
+
+    private void OnDestroy()
+    {
+        if (Instance == this)
+        {
+            Instance = null;
+        }
+    }
+
+    public bool ContainsItem(string itemId)
+    {
+        if (string.IsNullOrEmpty(itemId))
+        {
+            return false;
+        }
+
+        for (int i = 0; i < collectedCount; i++)
+        {
+            if (collectedItemIds[i] == itemId)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private void CacheSlots()
@@ -156,6 +218,10 @@ public class BagInventoryUI : MonoBehaviour
 
         int direction = scrollDelta > 0f ? -1 : 1;
         selectedSlotIndex = (selectedSlotIndex + direction + slotCount) % slotCount;
+        if (inventoryManager != null)
+        {
+            inventoryManager.SetSelectedSlotIndex(selectedSlotIndex, slotCount);
+        }
         RefreshSlots();
     }
 
@@ -218,25 +284,17 @@ public class BagInventoryUI : MonoBehaviour
 
     private void RemoveItemAt(int index)
     {
-        for (int i = index; i < collectedCount - 1; i++)
+        if (inventoryManager == null)
         {
-            collectedIcons[i] = collectedIcons[i + 1];
-            collectedItemIds[i] = collectedItemIds[i + 1];
+            return;
         }
 
-        if (collectedCount > 0)
+        if (!inventoryManager.RemoveItemAt(index))
         {
-            collectedIcons[collectedCount - 1] = null;
-            collectedItemIds[collectedCount - 1] = null;
-            collectedCount--;
+            return;
         }
 
-        if (selectedSlotIndex >= collectedCount)
-        {
-            selectedSlotIndex = Mathf.Max(0, collectedCount - 1);
-        }
-
-        RefreshSlots();
+        RebuildInventoryFromManager();
     }
 
     // Placeholder for per-item behavior. Add your actual effects here later.
