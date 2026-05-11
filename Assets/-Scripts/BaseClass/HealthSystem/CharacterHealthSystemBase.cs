@@ -99,6 +99,16 @@ namespace UGG.Health
 
         public bool IsDead() => isDead;
 
+        public void ForceDie(Transform attacker = null)
+        {
+            if (attacker != null)
+            {
+                SetAttacker(attacker);
+            }
+
+            Die();
+        }
+
         /// <summary>
         /// 弹刀动画
         /// </summary>

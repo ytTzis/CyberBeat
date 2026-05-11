@@ -42,6 +42,12 @@ public class SceneIntroCameraTransition : MonoBehaviour
     [SerializeField, InspectorName("Focus Duration")] private float focusDuration = 1.2f;
     [SerializeField, InspectorName("Focus Hold Duration")] private float focusHoldDuration = 0.45f;
     [SerializeField, InspectorName("Focus Use Target Rotation")] private bool focusUseTargetRotation = true;
+    [SerializeField, InspectorName("Activate Focus Target Before Focus Shot")] private bool activateFocusTargetBeforeFocusShot;
+    [SerializeField, InspectorName("Keep Focus Target Active After Focus Shot")] private bool keepFocusTargetActiveAfterFocusShot = true;
+    [SerializeField, InspectorName("Move Focus Target During Focus Shot")] private bool moveFocusTargetDuringFocusShot;
+    [SerializeField, InspectorName("Focus Target Move Space")] private Space focusTargetMoveSpace = Space.World;
+    [SerializeField, InspectorName("Focus Target Move Axis")] private Vector3 focusTargetMoveAxis = Vector3.right;
+    [SerializeField, InspectorName("Focus Target Move Speed")] private float focusTargetMoveSpeed = 0.35f;
     [SerializeField, InspectorName("Restrict Focus Shot To Scene")] private bool restrictFocusShotToScene = true;
     [SerializeField, InspectorName("Focus Shot Scene Name")] private string focusShotSceneName = "2_Game Scene";
     [SerializeField, InspectorName("Focus Transition Curve")] private AnimationCurve focusTransitionCurve = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
@@ -49,6 +55,7 @@ public class SceneIntroCameraTransition : MonoBehaviour
     [SerializeField, Header("Control"), InspectorName("Disable Player Input")] private bool disablePlayerInput = true;
     [SerializeField, InspectorName("Disable Camera Controllers")] private bool disableCameraControllers = true;
     [SerializeField, InspectorName("Restore Camera When Finished")] private bool restoreCameraWhenFinished = true;
+    [SerializeField, Header("Post Transition"), InspectorName("Transition Complete Receivers")] private MonoBehaviour[] transitionCompleteReceivers;
     [SerializeField, Header("Finish"), InspectorName("Fade When Finished")] private bool fadeWhenFinished = true;
     [SerializeField, InspectorName("Fade Out Duration")] private float fadeOutDuration = 0.35f;
     [SerializeField, InspectorName("Fade Hold Duration")] private float fadeHoldDuration = 0.08f;
@@ -231,6 +238,7 @@ public class SceneIntroCameraTransition : MonoBehaviour
             yield return FadeScreen(0f, fadeInDuration);
         }
 
+        NotifyTransitionComplete();
         transitionCoroutine = null;
     }
 
@@ -250,6 +258,7 @@ public class SceneIntroCameraTransition : MonoBehaviour
         }
 
         RestoreControls();
+        NotifyTransitionComplete();
         transitionCoroutine = null;
     }
 
@@ -372,6 +381,15 @@ public class SceneIntroCameraTransition : MonoBehaviour
 
     private IEnumerator PlayFocusShot(Transform activeFocusTarget, FocusShotSettings focusSettings)
     {
+        bool rehideTargetAfterShot = false;
+        GameObject focusObject = activeFocusTarget != null ? activeFocusTarget.gameObject : null;
+
+        if (activateFocusTargetBeforeFocusShot && focusObject != null && !focusObject.activeSelf)
+        {
+            focusObject.SetActive(true);
+            rehideTargetAfterShot = !keepFocusTargetActiveAfterFocusShot;
+        }
+
         float timer = 0f;
         Vector3 lockedTargetPosition = activeFocusTarget.position;
         float lockedTargetYaw = activeFocusTarget.eulerAngles.y;
@@ -379,6 +397,8 @@ public class SceneIntroCameraTransition : MonoBehaviour
         while (timer < focusSettings.Duration)
         {
             timer += Time.unscaledDeltaTime;
+            MoveFocusTarget(activeFocusTarget);
+
             float progress = Mathf.Clamp01(timer / Mathf.Max(focusSettings.Duration, Mathf.Epsilon));
             AnimationCurve curve = focusSettings.TransitionCurve ?? AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
             float curvedProgress = curve.Evaluate(progress);
@@ -405,6 +425,34 @@ public class SceneIntroCameraTransition : MonoBehaviour
         if (focusSettings.HoldDuration > 0f)
         {
             yield return new WaitForSecondsRealtime(focusSettings.HoldDuration);
+        }
+
+        if (rehideTargetAfterShot && focusObject != null)
+        {
+            focusObject.SetActive(false);
+        }
+    }
+
+    private void MoveFocusTarget(Transform activeFocusTarget)
+    {
+        if (!moveFocusTargetDuringFocusShot || activeFocusTarget == null)
+        {
+            return;
+        }
+
+        Vector3 axis = focusTargetMoveAxis.sqrMagnitude > Mathf.Epsilon
+            ? focusTargetMoveAxis.normalized
+            : Vector3.right;
+
+        Vector3 delta = axis * focusTargetMoveSpeed * Time.unscaledDeltaTime;
+
+        if (focusTargetMoveSpace == Space.Self)
+        {
+            activeFocusTarget.Translate(delta, Space.Self);
+        }
+        else
+        {
+            activeFocusTarget.position += delta;
         }
     }
 
@@ -477,6 +525,23 @@ public class SceneIntroCameraTransition : MonoBehaviour
         }
 
         fadeCanvasGroup.alpha = targetAlpha;
+    }
+
+    private void NotifyTransitionComplete()
+    {
+        if (transitionCompleteReceivers == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < transitionCompleteReceivers.Length; i++)
+        {
+            MonoBehaviour receiver = transitionCompleteReceivers[i];
+            if (receiver is ISceneIntroTransitionReceiver transitionReceiver)
+            {
+                transitionReceiver.OnSceneIntroTransitionFinished();
+            }
+        }
     }
 
     private void EnsureFadeCanvas()
