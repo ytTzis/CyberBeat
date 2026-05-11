@@ -29340,6 +29340,12 @@ MonoBehaviour:
   focusDuration: 1.2
   focusHoldDuration: 0.45
   focusUseTargetRotation: 0
+  activateFocusTargetBeforeFocusShot: 0
+  keepFocusTargetActiveAfterFocusShot: 1
+  moveFocusTargetDuringFocusShot: 0
+  focusTargetMoveSpace: 0
+  focusTargetMoveAxis: {x: 1, y: 0, z: 0}
+  focusTargetMoveSpeed: 0.35
   restrictFocusShotToScene: 1
   focusShotSceneName: 2_Game Scene
   focusTransitionCurve:
@@ -29369,6 +29375,7 @@ MonoBehaviour:
   disablePlayerInput: 1
   disableCameraControllers: 1
   restoreCameraWhenFinished: 1
+  transitionCompleteReceivers: []
   fadeWhenFinished: 1
   fadeOutDuration: 0.35
   fadeHoldDuration: 0.08
@@ -32745,7 +32752,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &641458848
 Transform:
   m_ObjectHideFlags: 0
@@ -79640,6 +79647,10 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 971902037195706982, guid: 0504336c24266b141a524cbebec8e2f2, type: 3}
       propertyPath: m_Layer
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 971902037195706982, guid: 0504336c24266b141a524cbebec8e2f2, type: 3}
+      propertyPath: m_IsActive
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 1025485300729898234, guid: 0504336c24266b141a524cbebec8e2f2, type: 3}
