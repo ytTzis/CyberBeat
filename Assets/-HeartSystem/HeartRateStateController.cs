@@ -265,7 +265,9 @@ public class HeartRateStateController : MonoBehaviour
         {
             hasBeenStressed = false;
         }
-        else if (newState == HeartRateState.HighStress || newState == HeartRateState.RisingStress)
+        else if (newState == HeartRateState.HighStress ||
+                 newState == HeartRateState.RisingStress ||
+                 newState == HeartRateState.Recovering)
         {
             hasBeenStressed = true;
         }

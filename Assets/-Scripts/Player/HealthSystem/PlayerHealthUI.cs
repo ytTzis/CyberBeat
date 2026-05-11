@@ -42,25 +42,36 @@ namespace UGG.Health
         [SerializeField] private bool pulseWhenLowHealth = true;
         [SerializeField] private float lowHealthPulseSpeed = 7f;
         [SerializeField] private float lowHealthPulseAmount = 0.28f;
+        [Header("Recovering Glow")]
+        [SerializeField] private bool showRecoveringGlow = true;
+        [SerializeField] private Color recoveringGlowColor = new Color(0.2f, 0.95f, 1f, 0.85f);
+        [SerializeField] private float recoveringGlowPulseSpeed = 2.4f;
+        [SerializeField, Range(0f, 1f)] private float recoveringGlowMinAlpha = 0.18f;
+        [SerializeField, Range(0f, 1f)] private float recoveringGlowMaxAlpha = 0.72f;
+        [SerializeField] private Vector2 recoveringGlowSizeOffset = new Vector2(14f, 10f);
 
         private Image delayDamageImage;
         private Image backgroundImage;
+        private Image recoveringGlowImage;
         private float displayedNormalizedHealth = 1f;
         private float delayedNormalizedHealth = 1f;
         private float previousNormalizedHealth = 1f;
         private float delayTimer;
         private float flashTimer;
         private bool initialized;
+        private HeartRateStateController heartRateStateController;
 
         private void Awake()
         {
             TryAutoBindPlayerHealth();
+            TryAutoBindHeartRateStateController();
             TryBuildExtraBars();
             ForceRefreshUI();
         }
 
         private void Update()
         {
+            TryAutoBindHeartRateStateController();
             RefreshUI(Time.deltaTime);
         }
 
@@ -160,6 +171,8 @@ namespace UGG.Health
                 delayDamageImage.fillAmount = delayedNormalizedHealth;
             }
 
+            UpdateRecoveringGlow();
+
             if (updateHealthText && healthText != null)
             {
                 healthText.text = $"{currentHealth:0} / {maxHealth:0}";
@@ -218,6 +231,15 @@ namespace UGG.Health
                 delayDamageImage = CreateBarImage("Health_DelayDamage", delayDamageColor, 1);
                 delayDamageImage.fillAmount = healthFillImage.fillAmount;
             }
+
+            if (showRecoveringGlow && recoveringGlowImage == null)
+            {
+                recoveringGlowImage = CreateBarImage("Health_RecoveringGlow", recoveringGlowColor, healthFillImage.transform.GetSiblingIndex());
+                RectTransform glowRect = recoveringGlowImage.rectTransform;
+                glowRect.sizeDelta += recoveringGlowSizeOffset;
+                recoveringGlowImage.fillAmount = healthFillImage.fillAmount;
+                recoveringGlowImage.enabled = false;
+            }
         }
 
         private Image CreateBarImage(string objectName, Color color, int siblingIndex)
@@ -259,6 +281,38 @@ namespace UGG.Health
             }
 
             playerHealthSystem = FindFirstObjectByType<PlayerHealthSystem>();
+        }
+
+        private void TryAutoBindHeartRateStateController()
+        {
+            if (heartRateStateController == null)
+            {
+                heartRateStateController = HeartRateStateController.Instance;
+            }
+        }
+
+        private void UpdateRecoveringGlow()
+        {
+            if (recoveringGlowImage == null)
+            {
+                return;
+            }
+
+            bool isRecovering = heartRateStateController != null &&
+                                heartRateStateController.CurrentState == HeartRateStateController.HeartRateState.Recovering;
+
+            recoveringGlowImage.fillAmount = displayedNormalizedHealth;
+            recoveringGlowImage.enabled = isRecovering;
+
+            if (!isRecovering)
+            {
+                return;
+            }
+
+            float pulse = (Mathf.Sin(Time.unscaledTime * recoveringGlowPulseSpeed) + 1f) * 0.5f;
+            Color glowColor = recoveringGlowColor;
+            glowColor.a = Mathf.Lerp(recoveringGlowMinAlpha, recoveringGlowMaxAlpha, pulse);
+            recoveringGlowImage.color = glowColor;
         }
     }
 }

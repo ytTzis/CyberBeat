@@ -25,6 +25,8 @@ public class BagInventoryUI : MonoBehaviour
     [SerializeField] private ItemIconEntry[] itemIcons;
     [SerializeField] private bool enablePickupDebugLogs = true;
     [SerializeField] private float pickupDebugHintRadius = 5f;
+    [SerializeField, Header("MonstourBlue Use SFX")] private AudioClip monstourBlueUseClip;
+    [SerializeField, Range(0f, 1f)] private float monstourBlueUseVolume = 0.9f;
 
     private Image[] slotImages;
     private RectTransform[] slotRects;
@@ -374,7 +376,10 @@ public class BagInventoryUI : MonoBehaviour
             case "MonstourBlue":
                 if (HeartRateStateController.Instance != null)
                 {
-                    HeartRateStateController.Instance.ForceReturnToNormal();
+                    PlayMonstourBlueUseSound();
+                    HeartRateStateController.Instance.ForceStateForDuration(
+                        HeartRateStateController.HeartRateState.Recovering,
+                        10f);
                 }
                 break;
             case "Monstour":
@@ -444,5 +449,16 @@ public class BagInventoryUI : MonoBehaviour
         }
 
         return null;
+    }
+
+    private void PlayMonstourBlueUseSound()
+    {
+        if (monstourBlueUseClip == null)
+        {
+            return;
+        }
+
+        Vector3 soundPosition = playerTarget != null ? playerTarget.position : transform.position;
+        AudioSource.PlayClipAtPoint(monstourBlueUseClip, soundPosition, monstourBlueUseVolume);
     }
 }
