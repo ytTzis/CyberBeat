@@ -2098,7 +2098,7 @@ MonoBehaviour:
   hitAnimationMoveMult: 1.1
   maxHealth: 100
   currentHealth: 100
-  hitLockReleaseNormalizedTime: 0.35
+  hitLockReleaseNormalizedTime: 0.2
 --- !u!114 &-3060988999548699325
 MonoBehaviour:
   m_ObjectHideFlags: 0

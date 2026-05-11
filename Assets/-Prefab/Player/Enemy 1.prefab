@@ -2912,9 +2912,9 @@ MonoBehaviour:
   hitAnimationMoveMult: 1.1
   maxHealth: 100
   currentHealth: 100
-  maxParryCount: 0
+  maxParryCount: 3
   counterattackParryCount: 0
-  maxHitCount: 0
+  maxHitCount: 4
   hitCount: 0
 --- !u!114 &8191082025260963103
 MonoBehaviour:

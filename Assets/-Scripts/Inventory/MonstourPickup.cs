@@ -5,6 +5,8 @@ public class MonstourPickup : MonoBehaviour
     [SerializeField] private float pickupRadius = 2.2f;
     [SerializeField] private string playerTag = "Player";
     [SerializeField] private bool destroyOnPickup = true;
+    [SerializeField] private int fallbackInventoryCapacity = 5;
+    [SerializeField] private bool enablePickupDebugLogs = true;
 
     private Transform playerTarget;
     private bool hasBeenPickedUp;
@@ -36,16 +38,30 @@ public class MonstourPickup : MonoBehaviour
             return;
         }
 
-        if (BagInventoryUI.Instance == null)
+        string itemId = ResolveItemId();
+        InventoryManager inventoryManager = InventoryManager.EnsureInstance();
+        if (inventoryManager == null)
         {
+            DebugPickup("Pickup failed because InventoryManager could not be created.");
             return;
         }
 
-        if (!BagInventoryUI.Instance.TryAddItem(null, "Monstour"))
+        int maxItemCount = BagInventoryUI.Instance != null
+            ? BagInventoryUI.Instance.SlotCapacity
+            : fallbackInventoryCapacity;
+
+        if (!inventoryManager.TryAddItem(itemId, maxItemCount))
         {
+            DebugPickup($"Pickup failed for '{itemId}'. Inventory may be full.");
             return;
         }
 
+        if (BagInventoryUI.Instance != null)
+        {
+            BagInventoryUI.Instance.RefreshFromInventory();
+        }
+
+        DebugPickup($"Picked up '{itemId}'.");
         hasBeenPickedUp = true;
 
         if (destroyOnPickup)
@@ -87,5 +103,30 @@ public class MonstourPickup : MonoBehaviour
     {
         Gizmos.color = Color.green;
         Gizmos.DrawWireSphere(transform.position, pickupRadius);
+    }
+
+    private string ResolveItemId()
+    {
+        if (name.StartsWith("MonstourRed"))
+        {
+            return "MonstourRed";
+        }
+
+        if (name.StartsWith("MonstourBlue"))
+        {
+            return "MonstourBlue";
+        }
+
+        return "Monstour";
+    }
+
+    private void DebugPickup(string message)
+    {
+        if (!enablePickupDebugLogs)
+        {
+            return;
+        }
+
+        Debug.LogWarning($"[MonstourPickup] {message}", this);
     }
 }

@@ -23,6 +23,8 @@ public class BagInventoryUI : MonoBehaviour
     [SerializeField] private Vector3 selectedSlotScale = new Vector3(1.12f, 1.12f, 1f);
     [SerializeField] private Vector3 normalSlotScale = Vector3.one;
     [SerializeField] private ItemIconEntry[] itemIcons;
+    [SerializeField] private bool enablePickupDebugLogs = true;
+    [SerializeField] private float pickupDebugHintRadius = 5f;
 
     private Image[] slotImages;
     private RectTransform[] slotRects;
@@ -32,15 +34,12 @@ public class BagInventoryUI : MonoBehaviour
     private Sprite[] collectedIcons;
     private string[] collectedItemIds;
     private InventoryManager inventoryManager;
+    private bool hasLoggedInventoryFull;
+    private bool hasLoggedMissingPlayer;
+    private float nextNearbyDebugLogTime;
 
     private void Awake()
     {
-        if (Instance != null && Instance != this)
-        {
-            Destroy(gameObject);
-            return;
-        }
-
         Instance = this;
         inventoryManager = InventoryManager.EnsureInstance();
         CacheSlots();
@@ -48,6 +47,7 @@ public class BagInventoryUI : MonoBehaviour
         collectedItemIds = new string[slotCount];
         RebuildInventoryFromManager();
         playerTarget = FindPlayerTarget();
+        DebugPickup("BagInventoryUI initialized.");
     }
 
     private void Update()
@@ -57,18 +57,33 @@ public class BagInventoryUI : MonoBehaviour
 
         if (collectedCount >= slotImages.Length)
         {
+            if (!hasLoggedInventoryFull)
+            {
+                DebugPickup("Pickup skipped because inventory is full.");
+                hasLoggedInventoryFull = true;
+            }
+
             return;
         }
+
+        hasLoggedInventoryFull = false;
 
         if (playerTarget == null)
         {
             playerTarget = FindPlayerTarget();
             if (playerTarget == null)
             {
+                if (!hasLoggedMissingPlayer)
+                {
+                    DebugPickup("Pickup skipped because no player target was found.");
+                    hasLoggedMissingPlayer = true;
+                }
+
                 return;
             }
         }
 
+        hasLoggedMissingPlayer = false;
         TryCollectNearbyMonstour();
     }
 
@@ -86,6 +101,18 @@ public class BagInventoryUI : MonoBehaviour
 
         RebuildInventoryFromManager();
         return true;
+    }
+
+    public int SlotCapacity => slotCount;
+
+    public void RefreshFromInventory()
+    {
+        if (inventoryManager == null)
+        {
+            inventoryManager = InventoryManager.EnsureInstance();
+        }
+
+        RebuildInventoryFromManager();
     }
 
     private void RebuildInventoryFromManager()
@@ -229,6 +256,8 @@ public class BagInventoryUI : MonoBehaviour
     {
         Transform[] sceneTransforms = FindObjectsByType<Transform>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
         float maxSqrDistance = pickupRadius * pickupRadius;
+        float nearestTrackedItemDistance = float.MaxValue;
+        string nearestTrackedItemName = null;
 
         for (int i = 0; i < sceneTransforms.Length; i++)
         {
@@ -250,6 +279,13 @@ public class BagInventoryUI : MonoBehaviour
             }
 
             float sqrDistance = (playerTarget.position - candidate.position).sqrMagnitude;
+            float distance = Mathf.Sqrt(sqrDistance);
+            if (distance < nearestTrackedItemDistance)
+            {
+                nearestTrackedItemDistance = distance;
+                nearestTrackedItemName = candidate.name;
+            }
+
             if (sqrDistance > maxSqrDistance)
             {
                 continue;
@@ -257,12 +293,29 @@ public class BagInventoryUI : MonoBehaviour
 
             if (!TryAddItem(matchedEntry.icon, matchedEntry.itemNamePrefix))
             {
+                DebugPickup($"Failed to add nearby item '{candidate.name}' to inventory.");
                 return;
             }
 
+            DebugPickup($"Picked up '{candidate.name}' at distance {distance:F2}.");
             Destroy(candidate.gameObject);
             return;
         }
+
+        if (!enablePickupDebugLogs || nearestTrackedItemName == null)
+        {
+            return;
+        }
+
+        if (nearestTrackedItemDistance > pickupDebugHintRadius || Time.unscaledTime < nextNearbyDebugLogTime)
+        {
+            return;
+        }
+
+        nextNearbyDebugLogTime = Time.unscaledTime + 1f;
+        DebugPickup(
+            $"Nearest pickup is '{nearestTrackedItemName}' at distance {nearestTrackedItemDistance:F2}. " +
+            $"Pickup radius is {pickupRadius:F2}.");
     }
 
     private void HandleUseSelectedItem()
@@ -358,6 +411,16 @@ public class BagInventoryUI : MonoBehaviour
     private bool IsTrackedItem(string candidateName)
     {
         return FindItemIconEntry(candidateName) != null;
+    }
+
+    private void DebugPickup(string message)
+    {
+        if (!enablePickupDebugLogs)
+        {
+            return;
+        }
+
+        Debug.LogWarning($"[BagInventoryUI] {message}", this);
     }
 
     private Transform FindPlayerTarget()
