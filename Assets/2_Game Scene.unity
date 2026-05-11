@@ -59903,6 +59903,10 @@ PrefabInstance:
       propertyPath: m_Layer
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 6796920526276404414, guid: 4a360fc563e0c4e4896f24a1ddcb030d, type: 3}
+      propertyPath: animationMoveMult
+      value: 0.8
+      objectReference: {fileID: 0}
     - target: {fileID: 6814877237548680176, guid: 4a360fc563e0c4e4896f24a1ddcb030d, type: 3}
       propertyPath: m_Layer
       value: 0
