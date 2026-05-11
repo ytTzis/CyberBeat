@@ -37963,7 +37963,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2648412829444649461, guid: 187ebd1836b43974586d5461860ee076, type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 7309454670986305033, guid: 187ebd1836b43974586d5461860ee076, type: 3}
       propertyPath: heartRate
@@ -83747,8 +83747,8 @@ MonoBehaviour:
   playerHealthSystem: {fileID: 2116347612}
   playerRoot: {fileID: 2116347610}
   mainDirectionalLight: {fileID: 108774178}
-  nonCombatUIRoot: {fileID: 0}
-  combatUIRoot: {fileID: 1129787054}
+  nonCombatUIRoot: {fileID: 1129787054}
+  combatUIRoot: {fileID: 295340796}
   heartRateStateController: {fileID: 0}
   enemySensors:
   - {fileID: 1188145888}
@@ -83776,7 +83776,7 @@ MonoBehaviour:
   - {fileID: 303272772}
   - {fileID: 570118603}
   - {fileID: 2085324243}
-  applyStressColorOutsideCombat: 1
+  applyStressColorOutsideCombat: 0
   highHealthColor: {r: 0.15, g: 0.95, b: 0.85, a: 1}
   midHealthColor: {r: 1, g: 0.65, b: 0.2, a: 1}
   lowHealthColor: {r: 0.95, g: 0.2, b: 0.65, a: 1}
@@ -87453,6 +87453,75 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: c73004d4fb88f4b469e3e5de3963d5a9, type: 3}
+--- !u!1001 &1732950656
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 5127273716986979712, guid: cd09f25c2af11964a8e287f5a923287d, type: 3}
+      propertyPath: amplitudeScale
+      value: 20
+      objectReference: {fileID: 0}
+    - target: {fileID: 5127273716986979713, guid: cd09f25c2af11964a8e287f5a923287d, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 500
+      objectReference: {fileID: 0}
+    - target: {fileID: 5127273716986979713, guid: cd09f25c2af11964a8e287f5a923287d, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 500
+      objectReference: {fileID: 0}
+    - target: {fileID: 5127273716986979713, guid: cd09f25c2af11964a8e287f5a923287d, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5127273716986979713, guid: cd09f25c2af11964a8e287f5a923287d, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5127273716986979713, guid: cd09f25c2af11964a8e287f5a923287d, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5127273716986979713, guid: cd09f25c2af11964a8e287f5a923287d, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5127273716986979713, guid: cd09f25c2af11964a8e287f5a923287d, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5127273716986979713, guid: cd09f25c2af11964a8e287f5a923287d, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5127273716986979713, guid: cd09f25c2af11964a8e287f5a923287d, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5127273716986979713, guid: cd09f25c2af11964a8e287f5a923287d, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5127273716986979726, guid: cd09f25c2af11964a8e287f5a923287d, type: 3}
+      propertyPath: m_Name
+      value: Oscillogram
+      objectReference: {fileID: 0}
+    - target: {fileID: 5127273718152531866, guid: cd09f25c2af11964a8e287f5a923287d, type: 3}
+      propertyPath: EmissionModule.enabled
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5127273718152531866, guid: cd09f25c2af11964a8e287f5a923287d, type: 3}
+      propertyPath: InitialModule.startLifetime.scalar
+      value: 2
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: cd09f25c2af11964a8e287f5a923287d, type: 3}
 --- !u!1001 &1733206246
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -108343,3 +108412,4 @@ SceneRoots:
   - {fileID: 895010669}
   - {fileID: 954712171}
   - {fileID: 448539989}
+  - {fileID: 1732950656}
