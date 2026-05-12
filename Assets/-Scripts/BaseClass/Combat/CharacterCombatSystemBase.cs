@@ -26,9 +26,14 @@ namespace UGG.Combat
         [SerializeField, Header("攻击检测")] protected Transform attackDetectionCenter;
         [SerializeField] protected float attackDetectionRang;
         [SerializeField] protected LayerMask enemyLayer;
+        [SerializeField, Header("持续命中检测")] protected float attackHitWindowDuration = 0.12f;
+        [SerializeField, Min(1)] protected int attackHitChecksPerWindow = 3;
 
         [SerializeField, Header("攻击伤害")] protected float normalAttackDamage = 10f;
         [SerializeField] protected float heavyAttackDamage = 20f;
+
+        private readonly Collider[] attackDetectionTargets = new Collider[4];
+        private Coroutine attackHitWindowCoroutine;
 
         protected virtual void Awake()
         {
@@ -57,30 +62,71 @@ namespace UGG.Combat
 
             PlayerWeaponEffect();
 
-            Collider[] attackDetectionTargets = new Collider[4];
-
-            int counts = Physics.OverlapSphereNonAlloc(attackDetectionCenter.position, attackDetectionRang, attackDetectionTargets, enemyLayer);
-
-            if (counts > 0)
+            if (attackHitWindowCoroutine != null)
             {
-                HashSet<IDamagar> hitTargets = new HashSet<IDamagar>();
+                StopCoroutine(attackHitWindowCoroutine);
+            }
 
-                for (int i = 0; i < counts; i++)
+            attackHitWindowCoroutine = StartCoroutine(AttackHitWindowRoutine(hitName));
+        }
+
+        private IEnumerator AttackHitWindowRoutine(string hitName)
+        {
+            HashSet<IDamagar> hitTargets = new HashSet<IDamagar>();
+            int checksRemaining = Mathf.Max(1, attackHitChecksPerWindow);
+            float totalDuration = Mathf.Max(0f, attackHitWindowDuration);
+            float checkInterval = checksRemaining <= 1 || totalDuration <= 0f
+                ? 0f
+                : totalDuration / (checksRemaining - 1);
+
+            for (int checkIndex = 0; checkIndex < checksRemaining; checkIndex++)
+            {
+                TryApplyAttackHits(hitName, hitTargets);
+
+                if (checkIndex < checksRemaining - 1 && checkInterval > 0f)
                 {
-                    Collider attackTarget = attackDetectionTargets[i];
-                    if (attackTarget == null)
-                    {
-                        continue;
-                    }
-
-                    IDamagar damagar = attackTarget.GetComponentInParent<IDamagar>();
-                    if (damagar == null || !hitTargets.Add(damagar))
-                    {
-                        continue;
-                    }
-
-                    damagar.TakeDamager(GetCurrentAttackDamage(), hitName, transform.root.transform);
+                    yield return new WaitForSeconds(checkInterval);
                 }
+            }
+
+            attackHitWindowCoroutine = null;
+        }
+
+        private void TryApplyAttackHits(string hitName, HashSet<IDamagar> hitTargets)
+        {
+            if (attackDetectionCenter == null)
+            {
+                return;
+            }
+
+            int counts = Physics.OverlapSphereNonAlloc(
+                attackDetectionCenter.position,
+                attackDetectionRang,
+                attackDetectionTargets,
+                enemyLayer);
+
+            if (counts <= 0)
+            {
+                return;
+            }
+
+            float damage = GetCurrentAttackDamage();
+
+            for (int i = 0; i < counts; i++)
+            {
+                Collider attackTarget = attackDetectionTargets[i];
+                if (attackTarget == null)
+                {
+                    continue;
+                }
+
+                IDamagar damagar = attackTarget.GetComponentInParent<IDamagar>();
+                if (damagar == null || !hitTargets.Add(damagar))
+                {
+                    continue;
+                }
+
+                damagar.TakeDamager(damage, hitName, transform.root.transform);
             }
         }
 
@@ -118,8 +164,22 @@ namespace UGG.Combat
             }
         }
 
+        protected virtual void OnDisable()
+        {
+            if (attackHitWindowCoroutine != null)
+            {
+                StopCoroutine(attackHitWindowCoroutine);
+                attackHitWindowCoroutine = null;
+            }
+        }
+
         private void OnDrawGizmos()
         {
+            if (attackDetectionCenter == null)
+            {
+                return;
+            }
+
             Gizmos.DrawWireSphere(attackDetectionCenter.position, attackDetectionRang);
         }
     }
