@@ -27,6 +27,11 @@ public abstract class CombatSkillBase : ScriptableObject
 
     protected void UseSkill()
     {
+        if (animator == null)
+        {
+            return;
+        }
+
         animator.Play(skillName, 0, 0f);
         skillIsDone = false;
         ResetSkill();

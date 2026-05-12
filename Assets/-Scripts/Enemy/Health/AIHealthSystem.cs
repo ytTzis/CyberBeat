@@ -52,6 +52,11 @@ namespace UGG.Health
                 return;
             }
 
+            if (!HasValidAnimator())
+            {
+                return;
+            }
+
             SetAttacker(attacker);
 
             if (maxParryCount > 0 && !OnInvincibleState())
@@ -105,6 +110,11 @@ namespace UGG.Health
         /// </summary>
         private bool OnInvincibleState()
         {
+            if (!HasValidAnimator())
+            {
+                return false;
+            }
+
             if (_animator.CheckAnimationTag("CounterAttack")) return true;
 
             return false;
@@ -112,6 +122,11 @@ namespace UGG.Health
 
         private void OnHitLockTarget()
         {
+            if (!HasValidAnimator() || currentAttacker == null)
+            {
+                return;
+            }
+
             //检测当前动画是否处于受伤状态
             if (_animator.CheckAnimationTag("Hit"))
             {
@@ -121,6 +136,11 @@ namespace UGG.Health
 
         private void OnParry(string hitName)
         {
+            if (!HasValidAnimator())
+            {
+                return;
+            }
+
             switch (hitName)
             {
                 default:

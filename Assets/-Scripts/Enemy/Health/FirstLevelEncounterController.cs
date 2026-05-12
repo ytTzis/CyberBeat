@@ -280,10 +280,10 @@ public class FirstLevelEncounterController : MonoBehaviour
         enemy2Activated = true;
         SetEnemyCombatEnabled(enemy2, true);
 
-        if (enemy2Animator != null)
+        if (TryGetEnemy2Animator(out Animator enemyAnimator))
         {
-            enemy2Animator.SetFloat(movementParameterId, 0f);
-            enemy2Animator.SetFloat("LockOn", 0f);
+            enemyAnimator.SetFloat(movementParameterId, 0f);
+            enemyAnimator.SetFloat("LockOn", 0f);
         }
 
         if (enemy2CombatSystem != null)
@@ -308,9 +308,17 @@ public class FirstLevelEncounterController : MonoBehaviour
             combatSystem.SetCombatLogicEnabled(isEnabled);
         }
 
-        Animator animator = healthSystem == enemy2 && enemy2Animator != null
-            ? enemy2Animator
-            : healthSystem.GetComponentInChildren<Animator>(true);
+        Animator animator = null;
+
+        if (healthSystem == enemy2)
+        {
+            TryGetEnemy2Animator(out animator);
+        }
+
+        if (animator == null)
+        {
+            animator = healthSystem.GetComponentInChildren<Animator>(true);
+        }
 
         if (animator != null)
         {
@@ -324,6 +332,26 @@ public class FirstLevelEncounterController : MonoBehaviour
                 animator.SetFloat(movementParameterId, 0f);
             }
         }
+    }
+
+    private bool TryGetEnemy2Animator(out Animator animator)
+    {
+        if (enemy2Animator != null)
+        {
+            animator = enemy2Animator;
+            return true;
+        }
+
+        animator = null;
+
+        if (enemy2 == null)
+        {
+            return false;
+        }
+
+        enemy2Animator = enemy2.GetComponentInChildren<Animator>(true);
+        animator = enemy2Animator;
+        return animator != null;
     }
 
     private void ConfigureTrigger(FirstLevelEncounterTrigger trigger, FirstLevelEncounterTrigger.TriggerStage triggerStage)

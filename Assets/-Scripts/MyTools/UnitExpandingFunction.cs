@@ -12,6 +12,11 @@ public static class UnitExpandingFunction
     /// <returns></returns>
     public static bool CheckAnimationTag(this Animator animator, string tagName, int animationIndex = 0)
     {
+        if (animator == null)
+        {
+            return false;
+        }
+
         return animator.GetCurrentAnimatorStateInfo(animationIndex).IsTag(tagName);
     }
 
@@ -24,6 +29,11 @@ public static class UnitExpandingFunction
     /// <returns></returns>
     public static bool CheckAnimationName(this Animator animator, string animationName, int animationIndex = 0)
     {
+        if (animator == null)
+        {
+            return false;
+        }
+
         return animator.GetCurrentAnimatorStateInfo(animationIndex).IsName(animationName);
     }
 

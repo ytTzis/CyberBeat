@@ -11,6 +11,11 @@ public class NormalSkill : CombatSkillBase
 
     public override void InvokeSkill()
     {
+        if (animator == null || combat == null || movement == null)
+        {
+            return;
+        }
+
         if (animator.CheckAnimationTag("Motion") && skillIsDone)
         {
             if (combat.GetCurrentTargetDistance() > skillUseDistance + attackCommitRangeBuffer)

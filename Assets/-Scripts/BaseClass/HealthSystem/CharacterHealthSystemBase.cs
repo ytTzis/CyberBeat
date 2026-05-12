@@ -67,6 +67,7 @@ namespace UGG.Health
 
         protected virtual void HitAnimaitonMove()
         {
+            if (!HasValidAnimator() || _movement == null) return;
             if(!_animator.CheckAnimationTag("Hit")) return;
             _movement.CharacterMoveInterface(transform.forward,_animator.GetFloat(animationMove) * hitAnimationMoveMult,true);
         }
@@ -115,6 +116,11 @@ namespace UGG.Health
         /// <param name="animationName"></param>
         public void FlickWeapon(string animationName)
         {
+            if (!HasValidAnimator())
+            {
+                return;
+            }
+
             _animator.Play(animationName, 0, 0f);
         }
 
@@ -172,6 +178,11 @@ namespace UGG.Health
 
         private void PlayDeathAnimation()
         {
+            if (!HasValidAnimator())
+            {
+                return;
+            }
+
             if (deathAnimationClip != null)
             {
                 if (deathPlayableGraph.IsValid())
@@ -191,6 +202,17 @@ namespace UGG.Health
             {
                 _animator.Play(deathAnimationName, 0, 0f);
             }
+        }
+
+        protected bool HasValidAnimator()
+        {
+            if (_animator != null)
+            {
+                return true;
+            }
+
+            _animator = GetComponentInChildren<Animator>(true);
+            return _animator != null;
         }
 
         protected virtual void OnDisable()
