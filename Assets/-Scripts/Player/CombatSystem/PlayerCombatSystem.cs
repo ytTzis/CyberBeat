@@ -94,9 +94,8 @@ namespace UGG.Combat
             {
                 bool canInputFromMotion = _animator.CheckCurrentTagAnimationTimeIsExceed("Motion", 0.01f) &&
                                           !_animator.IsInTransition(0);
-                bool canRecoverFromAttack = CanRecoverFromAttack();
 
-                if (canInputFromMotion || canRecoverFromAttack)
+                if (canInputFromMotion)
                 {
                     SetAllowAttackInput(true);
                 }

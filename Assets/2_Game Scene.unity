@@ -59991,6 +59991,10 @@ PrefabInstance:
       propertyPath: currentHealth
       value: 100
       objectReference: {fileID: 0}
+    - target: {fileID: 8006670349869119102, guid: 4a360fc563e0c4e4896f24a1ddcb030d, type: 3}
+      propertyPath: hitAnimationMoveMult
+      value: 0.9
+      objectReference: {fileID: 0}
     - target: {fileID: 8013912011865212533, guid: 4a360fc563e0c4e4896f24a1ddcb030d, type: 3}
       propertyPath: m_Layer
       value: 0

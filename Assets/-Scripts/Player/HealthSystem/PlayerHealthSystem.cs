@@ -12,6 +12,7 @@ namespace UGG.Health
     {
         private const string DefaultDeathAnimation = "GhostSamurai_APose_Die01_Inplace";
         private const string DefaultDeathAnimationPath = "Assets/GameAssets/GreatSword_Animset/Animation/katana/APose/Die/Inplace/GhostSamurai_APose_Die01_Inplace.FBX";
+        private const string UnparryableEnemySkillStateName = "Attack03_4";
 
         [Header("Player HP")]
         [SerializeField] private float maxHealth = 100f;
@@ -96,7 +97,7 @@ namespace UGG.Health
 
             SetAttacker(attacker);
 
-            if (CanParry())
+            if (CanParry() && !IsUnparryableEnemyAttack(attacker))
             {
                 Parry(hitAnimationName);
             }
@@ -113,6 +114,37 @@ namespace UGG.Health
                 _animator.Play(hitAnimationName, 0, 0f);
                 GameAssets.Instance.PlaySoundEffect(_audioSource, SoundAssetsType.hit);
             }
+        }
+
+        private bool IsUnparryableEnemyAttack(Transform attacker)
+        {
+            if (attacker == null)
+            {
+                return false;
+            }
+
+            Animator attackerAnimator = attacker.GetComponentInChildren<Animator>();
+            if (attackerAnimator == null)
+            {
+                return false;
+            }
+
+            AnimatorStateInfo currentStateInfo = attackerAnimator.GetCurrentAnimatorStateInfo(0);
+            if (currentStateInfo.IsName(UnparryableEnemySkillStateName))
+            {
+                return true;
+            }
+
+            if (attackerAnimator.IsInTransition(0))
+            {
+                AnimatorStateInfo nextStateInfo = attackerAnimator.GetNextAnimatorStateInfo(0);
+                if (nextStateInfo.IsName(UnparryableEnemySkillStateName))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         public void RestoreFullHealth()
