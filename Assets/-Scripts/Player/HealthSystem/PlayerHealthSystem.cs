@@ -12,7 +12,12 @@ namespace UGG.Health
     {
         private const string DefaultDeathAnimation = "GhostSamurai_APose_Die01_Inplace";
         private const string DefaultDeathAnimationPath = "Assets/GameAssets/GreatSword_Animset/Animation/katana/APose/Die/Inplace/GhostSamurai_APose_Die01_Inplace.FBX";
-        private const string UnparryableEnemySkillStateName = "Attack03_4";
+        private static readonly string[] UnparryableEnemySkillStateNames =
+        {
+            "Attack03_4",
+            "SPAttack02",
+            "SPAttack03"
+        };
 
         [Header("Player HP")]
         [SerializeField] private float maxHealth = 100f;
@@ -130,15 +135,16 @@ namespace UGG.Health
             }
 
             AnimatorStateInfo currentStateInfo = attackerAnimator.GetCurrentAnimatorStateInfo(0);
-            if (currentStateInfo.IsName(UnparryableEnemySkillStateName))
-            {
-                return true;
-            }
+            return MatchesUnparryableSkillState(currentStateInfo) ||
+                   (attackerAnimator.IsInTransition(0) &&
+                    MatchesUnparryableSkillState(attackerAnimator.GetNextAnimatorStateInfo(0)));
+        }
 
-            if (attackerAnimator.IsInTransition(0))
+        private static bool MatchesUnparryableSkillState(AnimatorStateInfo stateInfo)
+        {
+            for (int i = 0; i < UnparryableEnemySkillStateNames.Length; i++)
             {
-                AnimatorStateInfo nextStateInfo = attackerAnimator.GetNextAnimatorStateInfo(0);
-                if (nextStateInfo.IsName(UnparryableEnemySkillStateName))
+                if (stateInfo.IsName(UnparryableEnemySkillStateNames[i]))
                 {
                     return true;
                 }
