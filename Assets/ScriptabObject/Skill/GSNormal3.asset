@@ -12,9 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0038cf646b7c0954e88599540970e5c9, type: 3}
   m_Name: GSNormal3
   m_EditorClassIdentifier: 
-  skillName: 
+  skillName: GSLoop
   skillID: 0
-  skillCDTime: 0
+  skillCDTime: 10
   skillUseDistance: 0
   skillIsDone: 0
   aggressiveApproachSpeed: 1.3
