@@ -96,9 +96,10 @@ MonoBehaviour:
   pressureApproachSpeed: 1.85
   pressureStopDistanceBuffer: 0.2
   skills:
-  - {fileID: 11400000, guid: 58d84f0e64e94318812d0f6348e539aa, type: 2}
-  - {fileID: 11400000, guid: 7d3c632da80b45adabf3ffb93ed0d9ea, type: 2}
-  - {fileID: 11400000, guid: 1fb622bc5afc9c840957e7202a562f14, type: 2}
+  - {fileID: 11400000, guid: a3b4c5d6e7f80123456789abcdef0123, type: 2}
+  - {fileID: 11400000, guid: b4c5d6e7f80123456789abcdef01234a, type: 2}
+  - {fileID: 11400000, guid: c5d6e7f80123456789abcdef01234ab5, type: 2}
+  - {fileID: 11400000, guid: d6e7f80123456789abcdef01234ab5c6, type: 2}
   useRandomSkillSelection: 1
   repeatSkillWeightMultiplier: 0.45
   recentSkillWeightMultiplier: 0.7
