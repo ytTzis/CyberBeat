@@ -10,7 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 6870763212546471072}
   - component: {fileID: 791681426212603214}
-  - component: {fileID: 1815226438423580454}
+  - component: {fileID: 4223095161125093440}
   m_Layer: 7
   m_Name: Sci
   m_TagString: Untagged
@@ -55,7 +55,7 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
---- !u!114 &1815226438423580454
+--- !u!114 &4223095161125093440
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -64,7 +64,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 366090992242907416}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6de335cc4e4d57a41a72f740ab278f59, type: 3}
+  m_Script: {fileID: 11500000, guid: 26ff95a34928c904088975dd0e876793, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   attackDetectionCenter: {fileID: 7097377444544590963}
@@ -87,7 +87,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 256
   currentTarget: {fileID: 0}
-  animationMoveMult: 0.8
+  animationMoveMult: 1.5
   assistedGapCloseSkillName: JumpAttack04_1
   assistedGapCloseMoveSpeed: 2.6
   assistedGapCloseEndNormalizedTime: 0.55
@@ -96,9 +96,9 @@ MonoBehaviour:
   pressureApproachSpeed: 1.85
   pressureStopDistanceBuffer: 0.2
   skills:
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
+  - {fileID: 11400000, guid: 58d84f0e64e94318812d0f6348e539aa, type: 2}
+  - {fileID: 11400000, guid: 7d3c632da80b45adabf3ffb93ed0d9ea, type: 2}
+  - {fileID: 11400000, guid: 1fb622bc5afc9c840957e7202a562f14, type: 2}
   useRandomSkillSelection: 1
   repeatSkillWeightMultiplier: 0.45
   recentSkillWeightMultiplier: 0.7
@@ -784,8 +784,8 @@ GameObject:
   m_Component:
   - component: {fileID: 6246720277434953917}
   - component: {fileID: 7064878334751306500}
-  - component: {fileID: 6098870337881710835}
-  - component: {fileID: 7909138051560441288}
+  - component: {fileID: 5426119498548284338}
+  - component: {fileID: 1054060628008491392}
   - component: {fileID: 175753951103238988}
   m_Layer: 7
   m_Name: Enemy2
@@ -838,7 +838,7 @@ CharacterController:
   m_SkinWidth: 0.08
   m_MinMoveDistance: 0.001
   m_Center: {x: 0, y: 0, z: 0}
---- !u!114 &6098870337881710835
+--- !u!114 &5426119498548284338
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -847,22 +847,22 @@ MonoBehaviour:
   m_GameObject: {fileID: 3965374459862772708}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0c474d0b137576e4baa495d3ae4160f4, type: 3}
+  m_Script: {fileID: 11500000, guid: 8313fcd66ed85544c98d9d4e8ad05800, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   characterGravity: -9.8
   characterCurrentMoveSpeed: 0
   groundDetectionRang: 0.35
   groundDetectionOffset: -0.26
-  slopRayExtent: 5
+  slopRayExtent: 0
   whatIsGround:
     serializedVersion: 2
     m_Bits: 257
   whatIsObs:
     serializedVersion: 2
-    m_Bits: 65
+    m_Bits: 320
   isOnGround: 0
---- !u!114 &7909138051560441288
+--- !u!114 &1054060628008491392
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -882,7 +882,7 @@ MonoBehaviour:
   disableCollidersOnDeath: 1
   disableCharacterControllerOnDeath: 0
   restoreTimeScaleOnDeath: 1
-  hitAnimationMoveMult: 0.9
+  hitAnimationMoveMult: 0
   maxHealth: 100
   currentHealth: 100
   maxParryCount: 3
