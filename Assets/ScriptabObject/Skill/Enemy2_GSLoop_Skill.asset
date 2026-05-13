@@ -15,5 +15,5 @@ MonoBehaviour:
   skillName: GSLoop
   skillID: 20
   skillCDTime: 8
-  skillUseDistance: 1.8
+  skillUseDistance: 2.2
   skillIsDone: 0
