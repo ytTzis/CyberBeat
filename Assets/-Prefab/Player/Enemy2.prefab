@@ -898,11 +898,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 3965374459862772708}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5c7449bbea67fab479bbe62fdd8e0717, type: 3}
+  m_Script: {fileID: 11500000, guid: a78e9f0a1b2c3456abcde67890123456, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  transition: {fileID: 11400000, guid: 4db07664e25a1af4babfe4edcba5f05d, type: 2}
-  currentState: {fileID: 11400000, guid: b8af6671ffa6b024d8599134deb0ddcb, type: 2}
+  transition: {fileID: 11400000, guid: 3dd46ee57ff680112233445566778899, type: 2}
+  currentState: {fileID: 11400000, guid: 1bb24cc35dd46ee57ff6801122334455, type: 2}
 --- !u!1 &4019198942951125850
 GameObject:
   m_ObjectHideFlags: 0
