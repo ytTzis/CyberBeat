@@ -18,9 +18,25 @@ public class AI2RootMotionAttackDriver : MonoBehaviour
     {
         new RootMotionAttackState
         {
-            stateName = "GSAttack08",
-            attackEventNormalizedTime = 0.28f,
+            stateName = "GSWhirlwind_Start",
+            attackEventNormalizedTime = 0.72f,
             attackEventHitName = "Hit_H_Left",
+            applyPosition = true,
+            applyRotation = true
+        },
+        new RootMotionAttackState
+        {
+            stateName = "GSWhirlwind_Loop",
+            attackEventNormalizedTime = 0.35f,
+            attackEventHitName = "Hit_H_Right",
+            applyPosition = true,
+            applyRotation = true
+        },
+        new RootMotionAttackState
+        {
+            stateName = "GSWhirlwind_End",
+            attackEventNormalizedTime = 1f,
+            attackEventHitName = "",
             applyPosition = true,
             applyRotation = true
         }
@@ -67,7 +83,9 @@ public class AI2RootMotionAttackDriver : MonoBehaviour
         }
 
         RootMotionAttackState stateConfig = rootMotionAttackStates[activeStateIndex];
-        if (!attackEventTriggered && stateInfo.normalizedTime >= stateConfig.attackEventNormalizedTime)
+        if (!attackEventTriggered &&
+            !string.IsNullOrEmpty(stateConfig.attackEventHitName) &&
+            stateInfo.normalizedTime >= stateConfig.attackEventNormalizedTime)
         {
             combatSystem.TriggerAnimationAttackEvent(stateConfig.attackEventHitName);
             attackEventTriggered = true;

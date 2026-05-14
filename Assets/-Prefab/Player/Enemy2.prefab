@@ -123,9 +123,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   rootMotionAttackStates:
-  - stateName: GSAttack08
-    attackEventNormalizedTime: 0.28
+  - stateName: GSWhirlwind_Start
+    attackEventNormalizedTime: 0.72
     attackEventHitName: Hit_H_Left
+    applyPosition: 1
+    applyRotation: 1
+  - stateName: GSWhirlwind_Loop
+    attackEventNormalizedTime: 0.35
+    attackEventHitName: Hit_H_Right
+    applyPosition: 1
+    applyRotation: 1
+  - stateName: GSWhirlwind_End
+    attackEventNormalizedTime: 1
+    attackEventHitName: 
     applyPosition: 1
     applyRotation: 1
 --- !u!1 &396013550421905096
