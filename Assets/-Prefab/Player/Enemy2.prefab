@@ -152,6 +152,13 @@ MonoBehaviour:
     applyPosition: 1
     applyRotation: 1
     positionMultiplier: 0.6
+  - stateName: GS12
+    attackEventNormalizedTime: 0.24
+    attackEventHitName: Hit_H_Right
+    attackEvents: []
+    applyPosition: 1
+    applyRotation: 1
+    positionMultiplier: 0.85
 --- !u!1 &396013550421905096
 GameObject:
   m_ObjectHideFlags: 0

@@ -288,7 +288,20 @@ public class AICombatSystem : CharacterCombatSystemBase
         {
             if (_animator.CheckAnimationTag("Attack") || _animator.CheckAnimationTag("GSAttack"))
             {
-                transform.root.rotation = transform.LockOnTarget(currentTarget, transform.root.transform, 50f);
+                AnimatorStateInfo currentStateInfo = _animator.GetCurrentAnimatorStateInfo(0);
+                if (currentStateInfo.IsName("GS12") && currentStateInfo.normalizedTime < 0.25f)
+                {
+                    Vector3 targetDirection = currentTarget.position - transform.root.position;
+                    targetDirection.y = 0f;
+                    if (targetDirection.sqrMagnitude > 0.0001f)
+                    {
+                        transform.root.rotation = Quaternion.LookRotation(targetDirection.normalized);
+                    }
+                }
+                else
+                {
+                    transform.root.rotation = transform.LockOnTarget(currentTarget, transform.root.transform, 50f);
+                }
             }
         }
     }

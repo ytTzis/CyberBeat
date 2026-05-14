@@ -57,6 +57,15 @@ public class AI2RootMotionAttackDriver : MonoBehaviour
             applyPosition = true,
             applyRotation = true,
             positionMultiplier = 0.6f
+        },
+        new RootMotionAttackState
+        {
+            stateName = "GS12",
+            attackEventNormalizedTime = 0.24f,
+            attackEventHitName = "Hit_H_Right",
+            applyPosition = true,
+            applyRotation = true,
+            positionMultiplier = 0.85f
         }
     };
 

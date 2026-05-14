@@ -18,10 +18,13 @@ namespace UGG.Health
         [SerializeField] private float currentHealth = 100f;
 
         [SerializeField] private int maxParryCount;
-        [SerializeField] private int counterattackParryCount;//当格挡次数大于设置的值 触发反击技能
+        [SerializeField] private int counterattackParryCount;
+        [SerializeField] private float counterattackDelay = 0.5f;
 
         [SerializeField] private int maxHitCount;
-        [SerializeField] private int hitCount;//如果受伤次数超过最大受伤次数 触发脱身技能
+        [SerializeField] private int hitCount;
+
+        private Coroutine counterattackCoroutine;
 
         public float MaxHealth => maxHealth;
         public float CurrentHealth => currentHealth;
@@ -61,11 +64,14 @@ namespace UGG.Health
 
             if (maxParryCount > 0 && !OnInvincibleState())
             {
-                //如果反击格挡次数等于2
                 if (counterattackParryCount == 2)
                 {
-                    // Trigger Enemy2's dedicated parry counterattack skill.
-                    _animator.Play("GS12", 0, 0f);
+                    if (counterattackCoroutine != null)
+                    {
+                        StopCoroutine(counterattackCoroutine);
+                    }
+
+                    counterattackCoroutine = StartCoroutine(DelayedCounterattack());
                     counterattackParryCount = 0;
                     GameAssets.Instance.PlaySoundEffect(_audioSource, SoundAssetsType.parry);
                 }
@@ -73,41 +79,35 @@ namespace UGG.Health
                 {
                     OnParry(hitAnimationName);
                 }
+
                 maxParryCount--;
             }
             else
             {
                 if (hitCount == maxHitCount && !_animator.CheckAnimationTag("Flick_0"))
                 {
-                    //触发脱身技能
                     _animator.Play("Roll_B", 0, 0f);
 
                     hitCount = 0;
                     maxHitCount += Random.Range(1, 4);
                 }
-                else
+                else if (!OnInvincibleState())
                 {
-                    if (!OnInvincibleState())
+                    ApplyDamage(damagar);
+
+                    if (currentHealth <= 0f)
                     {
-                        ApplyDamage(damagar);
-
-                        if (currentHealth <= 0f)
-                        {
-                            Die();
-                            return;
-                        }
-
-                        _animator.Play(hitAnimationName, 0, 0f);
-                        GameAssets.Instance.PlaySoundEffect(_audioSource, SoundAssetsType.hit);
-                        hitCount++;
+                        Die();
+                        return;
                     }
-                } 
+
+                    _animator.Play(hitAnimationName, 0, 0f);
+                    GameAssets.Instance.PlaySoundEffect(_audioSource, SoundAssetsType.hit);
+                    hitCount++;
+                }
             }
         }
 
-        /// <summary>
-        /// 处于处决状态无敌不受到伤害
-        /// </summary>
         private bool OnInvincibleState()
         {
             if (!HasValidAnimator())
@@ -121,6 +121,25 @@ namespace UGG.Health
             return false;
         }
 
+        private IEnumerator DelayedCounterattack()
+        {
+            float delay = Mathf.Max(0f, counterattackDelay);
+            if (delay > 0f)
+            {
+                yield return new WaitForSeconds(delay);
+            }
+
+            if (IsDead() || !HasValidAnimator())
+            {
+                counterattackCoroutine = null;
+                yield break;
+            }
+
+            FaceCurrentAttackerForCounterattack();
+            _animator.Play("GS12", 0, 0f);
+            counterattackCoroutine = null;
+        }
+
         private void OnHitLockTarget()
         {
             if (!HasValidAnimator() || currentAttacker == null)
@@ -128,11 +147,34 @@ namespace UGG.Health
                 return;
             }
 
-            //检测当前动画是否处于受伤状态
+            AnimatorStateInfo currentStateInfo = _animator.GetCurrentAnimatorStateInfo(0);
+
             if (_animator.CheckAnimationTag("Hit"))
             {
                 transform.rotation = transform.LockOnTarget(currentAttacker, transform, 50f);
             }
+
+            if (currentStateInfo.IsName("GS12") && currentStateInfo.normalizedTime < 0.25f)
+            {
+                FaceCurrentAttackerForCounterattack();
+            }
+        }
+
+        private void FaceCurrentAttackerForCounterattack()
+        {
+            if (currentAttacker == null)
+            {
+                return;
+            }
+
+            Vector3 targetDirection = currentAttacker.position - transform.root.position;
+            targetDirection.y = 0f;
+            if (targetDirection.sqrMagnitude <= 0.0001f)
+            {
+                return;
+            }
+
+            transform.root.rotation = Quaternion.LookRotation(targetDirection.normalized);
         }
 
         private void OnParry(string hitName)
@@ -214,6 +256,16 @@ namespace UGG.Health
             deathAnimationClip = AssetDatabase.LoadAssetAtPath<AnimationClip>(DefaultDeathAnimationPath);
 #endif
         }
-    }
 
+        protected override void OnDisable()
+        {
+            base.OnDisable();
+
+            if (counterattackCoroutine != null)
+            {
+                StopCoroutine(counterattackCoroutine);
+                counterattackCoroutine = null;
+            }
+        }
+    }
 }

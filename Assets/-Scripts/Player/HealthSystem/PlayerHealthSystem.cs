@@ -429,6 +429,10 @@ namespace UGG.Health
                     _animator.Play("ParryL", 0, 0f);
                     GameAssets.Instance.PlaySoundEffect(_audioSource, SoundAssetsType.parry);
                     break;
+                case "Hit_H_Left":
+                    _animator.Play("ParryR", 0, 0f);
+                    GameAssets.Instance.PlaySoundEffect(_audioSource, SoundAssetsType.parry);
+                    break;
             }
         }
 
