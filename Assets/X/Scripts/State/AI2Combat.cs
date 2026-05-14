@@ -4,6 +4,7 @@ using UnityEngine;
 public class AI2Combat : AI2StateActionSO
 {
     private int randomHorizontal;
+    private bool currentSkillEnteredAttackState;
 
     [SerializeField] private CombatSkillBase currentSkill;
 
@@ -23,9 +24,24 @@ public class AI2Combat : AI2StateActionSO
         {
             currentSkill.InvokeSkill();
 
-            if (!currentSkill.GetSkillIsDone())
+            if (_animator == null)
+            {
+                return;
+            }
+
+            if (_animator.CheckAnimationTag("Attack") || _animator.CheckAnimationTag("GSAttack"))
+            {
+                currentSkillEnteredAttackState = true;
+                return;
+            }
+
+            // Animator.Play() often doesn't report the new tag until the next frame.
+            // Only release the skill after we've definitely entered an attack state
+            // and then returned to motion.
+            if (currentSkillEnteredAttackState && _animator.CheckAnimationTag("Motion"))
             {
                 currentSkill = null;
+                currentSkillEnteredAttackState = false;
             }
         }
     }
@@ -35,6 +51,7 @@ public class AI2Combat : AI2StateActionSO
         if (currentSkill == null)
         {
             currentSkill = _combatSystem.GetNextDoneSkill();
+            currentSkillEnteredAttackState = false;
         }
     }
 

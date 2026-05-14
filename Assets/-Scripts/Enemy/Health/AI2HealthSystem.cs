@@ -64,8 +64,8 @@ namespace UGG.Health
                 //如果反击格挡次数等于2
                 if (counterattackParryCount == 2)
                 {
-                    //触发反击技能
-                    _animator.Play("CounterAttack", 0, 0f);
+                    // Trigger Enemy2's dedicated parry counterattack skill.
+                    _animator.Play("GS12", 0, 0f);
                     counterattackParryCount = 0;
                     GameAssets.Instance.PlaySoundEffect(_audioSource, SoundAssetsType.parry);
                 }
@@ -116,6 +116,7 @@ namespace UGG.Health
             }
 
             if (_animator.CheckAnimationTag("CounterAttack")) return true;
+            if (_animator.GetCurrentAnimatorStateInfo(0).IsName("GS12")) return true;
 
             return false;
         }

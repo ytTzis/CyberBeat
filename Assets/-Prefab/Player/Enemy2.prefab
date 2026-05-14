@@ -97,7 +97,6 @@ MonoBehaviour:
   pressureStopDistanceBuffer: 0.2
   skills:
   - {fileID: 11400000, guid: a3b4c5d6e7f80123456789abcdef0123, type: 2}
-  - {fileID: 11400000, guid: b4c5d6e7f80123456789abcdef01234a, type: 2}
   - {fileID: 11400000, guid: c5d6e7f80123456789abcdef01234ab5, type: 2}
   - {fileID: 11400000, guid: d6e7f80123456789abcdef01234ab5c6, type: 2}
   useRandomSkillSelection: 1
