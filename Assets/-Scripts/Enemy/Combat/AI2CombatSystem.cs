@@ -8,4 +8,9 @@ public class AI2CombatSystem : AICombatSystem
     {
         return fallbackCloseRangeAttackAnimation;
     }
+
+    public void TriggerAnimationAttackEvent(string hitName)
+    {
+        OnAnimationAttackEvent(hitName);
+    }
 }

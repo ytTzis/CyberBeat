@@ -248,6 +248,12 @@ public class AICombatSystem : CharacterCombatSystemBase
 
     private void OnAnimatorActionAutoLockON()
     {
+        if (TryGetComponent(out AI2RootMotionAttackDriver rootMotionAttackDriver) &&
+            rootMotionAttackDriver.IsHandlingRootMotionAttack())
+        {
+            return;
+        }
+
         if (CanAttackLockOn())
         {
             if (_animator.CheckAnimationTag("Attack") || _animator.CheckAnimationTag("GSAttack"))
