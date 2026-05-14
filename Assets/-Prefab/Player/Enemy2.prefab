@@ -126,16 +126,27 @@ MonoBehaviour:
   - stateName: GSWhirlwind_Start
     attackEventNormalizedTime: 0.72
     attackEventHitName: Hit_H_Left
+    attackEvents:
+    - normalizedTime: 0.72
+      hitName: Hit_H_Left
     applyPosition: 1
     applyRotation: 1
   - stateName: GSWhirlwind_Loop
     attackEventNormalizedTime: 0.35
     attackEventHitName: Hit_H_Right
+    attackEvents:
+    - normalizedTime: 0.22
+      hitName: Hit_H_Left
+    - normalizedTime: 0.5
+      hitName: Hit_H_Right
+    - normalizedTime: 0.78
+      hitName: Hit_H_Left
     applyPosition: 1
     applyRotation: 1
   - stateName: GSWhirlwind_End
     attackEventNormalizedTime: 1
     attackEventHitName: 
+    attackEvents: []
     applyPosition: 1
     applyRotation: 1
 --- !u!1 &396013550421905096

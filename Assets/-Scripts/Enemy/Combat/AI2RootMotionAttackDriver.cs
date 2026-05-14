@@ -1,17 +1,31 @@
 using System;
 using UnityEngine;
+using UGG.Move;
 
 [DisallowMultipleComponent]
 public class AI2RootMotionAttackDriver : MonoBehaviour
 {
     [Serializable]
+    private struct RootMotionAttackEvent
+    {
+        [Range(0f, 1f)] public float normalizedTime;
+        public string hitName;
+    }
+
+    [Serializable]
     private struct RootMotionAttackState
     {
         public string stateName;
+
+        // Legacy single-event fields kept for backward compatibility.
         [Range(0f, 1f)] public float attackEventNormalizedTime;
         public string attackEventHitName;
+
+        public RootMotionAttackEvent[] attackEvents;
         public bool applyPosition;
         public bool applyRotation;
+
+        public int StateNameHash => Animator.StringToHash(stateName);
     }
 
     [SerializeField] private RootMotionAttackState[] rootMotionAttackStates =
@@ -45,15 +59,25 @@ public class AI2RootMotionAttackDriver : MonoBehaviour
     private Animator animator;
     private CharacterController controller;
     private AI2CombatSystem combatSystem;
+    private AudioSource audioSource;
     private Quaternion pendingRotation = Quaternion.identity;
     private int activeStateIndex = -1;
-    private bool attackEventTriggered;
+    private bool[] triggeredAttackEvents = Array.Empty<bool>();
 
     private void Awake()
     {
         animator = GetComponent<Animator>();
         controller = GetComponentInParent<CharacterController>();
         combatSystem = GetComponent<AI2CombatSystem>();
+        CharacterMovementBase movementBase = GetComponentInParent<CharacterMovementBase>();
+        audioSource = movementBase != null
+            ? movementBase.GetComponentInChildren<AudioSource>()
+            : GetComponentInParent<AudioSource>();
+
+        if (audioSource == null && transform.root != null)
+        {
+            audioSource = transform.root.GetComponentInChildren<AudioSource>(true);
+        }
 
         if (animator != null)
         {
@@ -70,11 +94,20 @@ public class AI2RootMotionAttackDriver : MonoBehaviour
 
         AnimatorStateInfo stateInfo = animator.GetCurrentAnimatorStateInfo(0);
         int matchedStateIndex = GetMatchingStateIndex(stateInfo);
+        if (matchedStateIndex < 0 && animator.IsInTransition(0))
+        {
+            matchedStateIndex = GetMatchingStateIndex(animator.GetNextAnimatorStateInfo(0));
+        }
 
         if (matchedStateIndex != activeStateIndex)
         {
             activeStateIndex = matchedStateIndex;
-            attackEventTriggered = false;
+            ResetTriggeredAttackEvents();
+
+            if (activeStateIndex >= 0 && GetAttackEventCount(rootMotionAttackStates[activeStateIndex]) > 0)
+            {
+                PlayGreatSwordSwingSound();
+            }
         }
 
         if (activeStateIndex < 0 || combatSystem == null)
@@ -83,12 +116,26 @@ public class AI2RootMotionAttackDriver : MonoBehaviour
         }
 
         RootMotionAttackState stateConfig = rootMotionAttackStates[activeStateIndex];
-        if (!attackEventTriggered &&
-            !string.IsNullOrEmpty(stateConfig.attackEventHitName) &&
-            stateInfo.normalizedTime >= stateConfig.attackEventNormalizedTime)
+        for (int i = 0; i < GetAttackEventCount(stateConfig); i++)
         {
-            combatSystem.TriggerAnimationAttackEvent(stateConfig.attackEventHitName);
-            attackEventTriggered = true;
+            if (triggeredAttackEvents[i])
+            {
+                continue;
+            }
+
+            string hitName = GetAttackEventHitName(stateConfig, i);
+            if (string.IsNullOrEmpty(hitName))
+            {
+                triggeredAttackEvents[i] = true;
+                continue;
+            }
+
+            if (stateInfo.normalizedTime >= GetAttackEventNormalizedTime(stateConfig, i))
+            {
+                PlayGreatSwordSwingSound();
+                combatSystem.TriggerAnimationAttackEvent(hitName);
+                triggeredAttackEvents[i] = true;
+            }
         }
     }
 
@@ -101,6 +148,10 @@ public class AI2RootMotionAttackDriver : MonoBehaviour
 
         AnimatorStateInfo stateInfo = animator.GetCurrentAnimatorStateInfo(0);
         int matchedStateIndex = GetMatchingStateIndex(stateInfo);
+        if (matchedStateIndex < 0 && animator.IsInTransition(0))
+        {
+            matchedStateIndex = GetMatchingStateIndex(animator.GetNextAnimatorStateInfo(0));
+        }
         if (matchedStateIndex < 0)
         {
             pendingRotation = Quaternion.identity;
@@ -149,12 +200,66 @@ public class AI2RootMotionAttackDriver : MonoBehaviour
     {
         for (int i = 0; i < rootMotionAttackStates.Length; i++)
         {
-            if (stateInfo.IsName(rootMotionAttackStates[i].stateName))
+            RootMotionAttackState stateConfig = rootMotionAttackStates[i];
+            if (stateInfo.shortNameHash == stateConfig.StateNameHash ||
+                stateInfo.fullPathHash == stateConfig.StateNameHash ||
+                stateInfo.IsName(stateConfig.stateName))
             {
                 return i;
             }
         }
 
         return -1;
+    }
+
+    private void ResetTriggeredAttackEvents()
+    {
+        if (activeStateIndex < 0)
+        {
+            triggeredAttackEvents = Array.Empty<bool>();
+            return;
+        }
+
+        triggeredAttackEvents = new bool[GetAttackEventCount(rootMotionAttackStates[activeStateIndex])];
+    }
+
+    private static int GetAttackEventCount(RootMotionAttackState stateConfig)
+    {
+        if (stateConfig.attackEvents != null && stateConfig.attackEvents.Length > 0)
+        {
+            return stateConfig.attackEvents.Length;
+        }
+
+        return string.IsNullOrEmpty(stateConfig.attackEventHitName) ? 0 : 1;
+    }
+
+    private static float GetAttackEventNormalizedTime(RootMotionAttackState stateConfig, int eventIndex)
+    {
+        if (stateConfig.attackEvents != null && stateConfig.attackEvents.Length > 0)
+        {
+            return stateConfig.attackEvents[eventIndex].normalizedTime;
+        }
+
+        return stateConfig.attackEventNormalizedTime;
+    }
+
+    private static string GetAttackEventHitName(RootMotionAttackState stateConfig, int eventIndex)
+    {
+        if (stateConfig.attackEvents != null && stateConfig.attackEvents.Length > 0)
+        {
+            return stateConfig.attackEvents[eventIndex].hitName;
+        }
+
+        return stateConfig.attackEventHitName;
+    }
+
+    private void PlayGreatSwordSwingSound()
+    {
+        if (audioSource == null || GameAssets.Instance == null)
+        {
+            return;
+        }
+
+        GameAssets.Instance.PlaySoundEffectOneShot(audioSource, SoundAssetsType.hSwordWave);
     }
 }
