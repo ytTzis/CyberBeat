@@ -24,6 +24,7 @@ public class AI2RootMotionAttackDriver : MonoBehaviour
         public RootMotionAttackEvent[] attackEvents;
         public bool applyPosition;
         public bool applyRotation;
+        [Range(0f, 1f)] public float positionMultiplier;
 
         public int StateNameHash => Animator.StringToHash(stateName);
     }
@@ -36,7 +37,8 @@ public class AI2RootMotionAttackDriver : MonoBehaviour
             attackEventNormalizedTime = 0.72f,
             attackEventHitName = "Hit_H_Left",
             applyPosition = true,
-            applyRotation = true
+            applyRotation = true,
+            positionMultiplier = 0.7f
         },
         new RootMotionAttackState
         {
@@ -44,7 +46,8 @@ public class AI2RootMotionAttackDriver : MonoBehaviour
             attackEventNormalizedTime = 0.35f,
             attackEventHitName = "Hit_H_Right",
             applyPosition = true,
-            applyRotation = true
+            applyRotation = true,
+            positionMultiplier = 0.65f
         },
         new RootMotionAttackState
         {
@@ -52,13 +55,14 @@ public class AI2RootMotionAttackDriver : MonoBehaviour
             attackEventNormalizedTime = 1f,
             attackEventHitName = "",
             applyPosition = true,
-            applyRotation = true
+            applyRotation = true,
+            positionMultiplier = 0.6f
         }
     };
 
     private Animator animator;
     private CharacterController controller;
-    private AI2CombatSystem combatSystem;
+    private AICombatSystem combatSystem;
     private AudioSource audioSource;
     private Quaternion pendingRotation = Quaternion.identity;
     private int activeStateIndex = -1;
@@ -68,7 +72,7 @@ public class AI2RootMotionAttackDriver : MonoBehaviour
     {
         animator = GetComponent<Animator>();
         controller = GetComponentInParent<CharacterController>();
-        combatSystem = GetComponent<AI2CombatSystem>();
+        combatSystem = GetComponent<AICombatSystem>();
         CharacterMovementBase movementBase = GetComponentInParent<CharacterMovementBase>();
         audioSource = movementBase != null
             ? movementBase.GetComponentInChildren<AudioSource>()
@@ -133,7 +137,14 @@ public class AI2RootMotionAttackDriver : MonoBehaviour
             if (stateInfo.normalizedTime >= GetAttackEventNormalizedTime(stateConfig, i))
             {
                 PlayGreatSwordSwingSound();
-                combatSystem.TriggerAnimationAttackEvent(hitName);
+                if (stateConfig.stateName.StartsWith("GSWhirlwind", StringComparison.Ordinal))
+                {
+                    combatSystem.TriggerWhirlwindAttackEvent(hitName);
+                }
+                else
+                {
+                    combatSystem.TriggerAnimationAttackEvent(hitName);
+                }
                 triggeredAttackEvents[i] = true;
             }
         }
@@ -162,7 +173,8 @@ public class AI2RootMotionAttackDriver : MonoBehaviour
 
         if (stateConfig.applyPosition)
         {
-            Vector3 deltaPosition = animator.deltaPosition;
+            float positionMultiplier = stateConfig.positionMultiplier <= 0f ? 1f : stateConfig.positionMultiplier;
+            Vector3 deltaPosition = animator.deltaPosition * positionMultiplier;
             deltaPosition.y = 0f;
             if (deltaPosition.sqrMagnitude > 0f)
             {

@@ -32,6 +32,8 @@ public class AICombatSystem : CharacterCombatSystemBase
     [SerializeField, Min(0f)] private float pressureStopDistanceBuffer = 0.2f;
 
     [SerializeField, Header("Skills")] private List<CombatSkillBase> skills = new List<CombatSkillBase>();
+    [SerializeField, Header("Whirlwind Detection Center")] private Transform whirwindRangeDetectionCenter;
+    [SerializeField, Min(0f), Header("Whirlwind Detection Range")] private float whirwindAttackDetectionRange = 2.1f;
     [SerializeField, Header("Skill Variation")] private bool useRandomSkillSelection = true;
     [SerializeField, Range(0f, 1f)] private float repeatSkillWeightMultiplier = 0.45f;
     [SerializeField, Range(0f, 1f)] private float recentSkillWeightMultiplier = 0.7f;
@@ -154,6 +156,34 @@ public class AICombatSystem : CharacterCombatSystemBase
         }
 
         return currentTarget;
+    }
+
+    public void TriggerAnimationAttackEvent(string hitName)
+    {
+        OnAnimationAttackEvent(hitName);
+    }
+
+    public void TriggerWhirlwindAttackEvent(string hitName)
+    {
+        if (whirwindRangeDetectionCenter == null)
+        {
+            OnAnimationAttackEvent(hitName);
+            return;
+        }
+
+        Transform originalCenter = attackDetectionCenter;
+        float originalRange = attackDetectionRang;
+
+        attackDetectionCenter = whirwindRangeDetectionCenter;
+        if (whirwindAttackDetectionRange > 0f)
+        {
+            attackDetectionRang = whirwindAttackDetectionRange;
+        }
+
+        OnAnimationAttackEvent(hitName);
+
+        attackDetectionCenter = originalCenter;
+        attackDetectionRang = originalRange;
     }
 
     private void UpdateAnimationMove()
