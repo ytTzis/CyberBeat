@@ -1,4 +1,6 @@
 using System.Collections;
+using UnityEngine.Animations;
+using UnityEngine.Playables;
 using UGG.Combat;
 using UGG.Health;
 using UGG.Move;
@@ -27,7 +29,6 @@ public class Scene3BossRevealTrigger : MonoBehaviour
     [SerializeField] private float focusOrbitAngle = 8f;
     [SerializeField] private float focusDuration = 1.2f;
     [SerializeField] private float focusHoldDuration = 0.35f;
-    [SerializeField] private bool focusUseTargetRotation = true;
     [SerializeField] private bool focusInvertTargetRotation;
     [SerializeField] private AnimationCurve focusTransitionCurve = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
 
@@ -38,6 +39,10 @@ public class Scene3BossRevealTrigger : MonoBehaviour
     [SerializeField, Min(0.05f)] private float jumpDuration = 1.1f;
     [SerializeField, Min(0f)] private float jumpArcHeight = 2.6f;
     [SerializeField] private string jumpAnimatorStateName = "GS12";
+    [SerializeField] private AnimationClip jumpStartClip;
+    [SerializeField] private AnimationClip jumpLoopClip;
+    [SerializeField] private AnimationClip jumpEndClip;
+    [SerializeField] private string landingIdleStateName = "GreatSword_Idle_Pose";
     [SerializeField] private bool rotateTowardLandingPoint = true;
     [SerializeField] private bool enableCombatAfterLanding = true;
 
@@ -52,6 +57,8 @@ public class Scene3BossRevealTrigger : MonoBehaviour
     private bool hasTriggered;
     private bool originalCharacterControllerEnabled;
     private bool originalMovementEnabled;
+    private PlayableGraph jumpPlayableGraph;
+    private Coroutine jumpAnimationCoroutine;
 
     private void Awake()
     {
@@ -97,6 +104,7 @@ public class Scene3BossRevealTrigger : MonoBehaviour
     private IEnumerator RevealBossRoutine()
     {
         SetEnemyCombatEnabled(false);
+        ShowJumpStartPose();
 
         if (playRevealFocusShot)
         {
@@ -122,7 +130,8 @@ public class Scene3BossRevealTrigger : MonoBehaviour
                         UseTargetRotation = true,
                         // Stay on the player's side of the axis instead of flipping behind Enemy2.
                         InvertTargetRotation = false,
-                        LockTargetTransform = true,
+                        // Follow Enemy2 as it jumps down instead of locking to the initial perch.
+                        LockTargetTransform = false,
                         TransitionCurve = focusTransitionCurve
                     };
 
@@ -171,7 +180,7 @@ public class Scene3BossRevealTrigger : MonoBehaviour
 
         CacheEnemyMotionState();
         SetEnemyMotionEnabled(false);
-        PlayJumpAnimation();
+        StartJumpAnimationSequence();
 
         float timer = 0f;
         while (timer < jumpDuration)
@@ -182,12 +191,16 @@ public class Scene3BossRevealTrigger : MonoBehaviour
             Vector3 horizontalPosition = Vector3.Lerp(startPosition, endPosition, progress);
             float verticalOffset = 4f * jumpArcHeight * progress * (1f - progress);
             enemyMover.position = horizontalPosition + Vector3.up * verticalOffset;
+            UpdateRevealFocusAnchorTransform();
 
             yield return null;
         }
 
         enemyMover.position = endPosition;
+        UpdateRevealFocusAnchorTransform();
+        StopJumpAnimationSequence();
         SetEnemyMotionEnabled(true);
+        PlayLandingIdlePose();
     }
 
     private void CacheReferences()
@@ -315,6 +328,135 @@ public class Scene3BossRevealTrigger : MonoBehaviour
         enemyAnimator.Play(jumpAnimatorStateName, 0, 0f);
     }
 
+    private void StartJumpAnimationSequence()
+    {
+        StopJumpAnimationSequence();
+
+        if (enemyAnimator == null)
+        {
+            return;
+        }
+
+        if (jumpStartClip == null && jumpLoopClip == null && jumpEndClip == null)
+        {
+            PlayJumpAnimation();
+            return;
+        }
+
+        jumpAnimationCoroutine = StartCoroutine(PlayJumpAnimationSequenceRoutine());
+    }
+
+    private IEnumerator PlayJumpAnimationSequenceRoutine()
+    {
+        float startDuration = GetClipDuration(jumpStartClip);
+        float endDuration = GetClipDuration(jumpEndClip);
+        float loopWindow = Mathf.Max(0f, jumpDuration - startDuration - endDuration);
+
+        if (jumpStartClip != null)
+        {
+            PlayJumpClip(jumpStartClip, 1d);
+            yield return WaitForSecondsRealtimeSafe(startDuration);
+        }
+
+        if (jumpLoopClip != null && loopWindow > 0f)
+        {
+            PlayJumpClip(jumpLoopClip, 1d);
+            yield return WaitForSecondsRealtimeSafe(loopWindow);
+        }
+
+        if (jumpEndClip != null)
+        {
+            PlayJumpClip(jumpEndClip, 1d);
+            yield return WaitForSecondsRealtimeSafe(endDuration);
+        }
+
+        DestroyJumpPlayableGraph();
+        jumpAnimationCoroutine = null;
+    }
+
+    private void PlayJumpClip(AnimationClip clip, double speed = 1d)
+    {
+        if (clip == null || enemyAnimator == null)
+        {
+            return;
+        }
+
+        DestroyJumpPlayableGraph();
+
+        jumpPlayableGraph = PlayableGraph.Create("Scene3BossRevealJumpGraph");
+        AnimationPlayableOutput output = AnimationPlayableOutput.Create(jumpPlayableGraph, "Animation", enemyAnimator);
+        AnimationClipPlayable playable = AnimationClipPlayable.Create(jumpPlayableGraph, clip);
+        playable.SetApplyFootIK(false);
+        playable.SetApplyPlayableIK(false);
+        playable.SetDuration(clip.length);
+        playable.SetTime(0d);
+        playable.SetSpeed(speed);
+
+        output.SetSourcePlayable(playable);
+        jumpPlayableGraph.Play();
+    }
+
+    private void ShowJumpStartPose()
+    {
+        if (jumpStartClip != null)
+        {
+            PlayJumpClip(jumpStartClip, 0d);
+            return;
+        }
+
+        PlayJumpAnimation();
+    }
+
+    private void PlayLandingIdlePose()
+    {
+        if (enemyAnimator == null || string.IsNullOrWhiteSpace(landingIdleStateName))
+        {
+            return;
+        }
+
+        enemyAnimator.Play(landingIdleStateName, 0, 0f);
+        enemyAnimator.Update(0f);
+    }
+
+    private void StopJumpAnimationSequence()
+    {
+        if (jumpAnimationCoroutine != null)
+        {
+            StopCoroutine(jumpAnimationCoroutine);
+            jumpAnimationCoroutine = null;
+        }
+
+        DestroyJumpPlayableGraph();
+    }
+
+    private void DestroyJumpPlayableGraph()
+    {
+        if (jumpPlayableGraph.IsValid())
+        {
+            jumpPlayableGraph.Destroy();
+        }
+    }
+
+    private static IEnumerator WaitForSecondsRealtimeSafe(float duration)
+    {
+        if (duration <= 0f)
+        {
+            yield break;
+        }
+
+        float timer = 0f;
+        while (timer < duration)
+        {
+            timer += Time.unscaledDeltaTime;
+            yield return null;
+        }
+    }
+
+    private static float GetClipDuration(AnimationClip clip)
+    {
+        return clip != null ? Mathf.Max(0f, clip.length) : 0f;
+    }
+
     private Vector3 GetLandingPosition()
     {
         if (landingPoint != null)
@@ -327,7 +469,17 @@ public class Scene3BossRevealTrigger : MonoBehaviour
             return landingOffset;
         }
 
-        return enemyMover.position + enemyMover.rotation * landingOffset;
+        Vector3 forwardCandidate = enemyMover.position + enemyMover.rotation * landingOffset;
+        Vector3 backwardCandidate = enemyMover.position + enemyMover.rotation * new Vector3(-landingOffset.x, landingOffset.y, -landingOffset.z);
+
+        if (playerTransform == null)
+        {
+            return forwardCandidate;
+        }
+
+        float forwardDistanceToPlayer = Vector3.SqrMagnitude(forwardCandidate - playerTransform.position);
+        float backwardDistanceToPlayer = Vector3.SqrMagnitude(backwardCandidate - playerTransform.position);
+        return forwardDistanceToPlayer <= backwardDistanceToPlayer ? forwardCandidate : backwardCandidate;
     }
 
     private Transform GetOrCreateRevealFocusAnchor()
@@ -343,8 +495,18 @@ public class Scene3BossRevealTrigger : MonoBehaviour
             revealFocusAnchor = anchorObject.transform;
         }
 
-        revealFocusAnchor.position = enemyMover.position;
+        UpdateRevealFocusAnchorTransform();
+        return revealFocusAnchor;
+    }
 
+    private void UpdateRevealFocusAnchorTransform()
+    {
+        if (revealFocusAnchor == null || enemyMover == null)
+        {
+            return;
+        }
+
+        revealFocusAnchor.position = enemyMover.position;
         Vector3 forward = Vector3.forward;
         if (playerTransform != null)
         {
@@ -366,7 +528,6 @@ public class Scene3BossRevealTrigger : MonoBehaviour
         }
 
         revealFocusAnchor.rotation = Quaternion.LookRotation(forward, Vector3.up);
-        return revealFocusAnchor;
     }
 
     private bool IsPlayerCollider(Collider other)
@@ -393,5 +554,43 @@ public class Scene3BossRevealTrigger : MonoBehaviour
         }
 
         return UnityEngine.SceneManagement.SceneManager.GetActiveScene().name == sceneName;
+    }
+
+#if UNITY_EDITOR
+    private void OnValidate()
+    {
+        TryAssignDefaultJumpClips();
+    }
+
+    private void Reset()
+    {
+        TryAssignDefaultJumpClips();
+    }
+
+    private void TryAssignDefaultJumpClips()
+    {
+        if (jumpStartClip == null)
+        {
+            jumpStartClip = UnityEditor.AssetDatabase.LoadAssetAtPath<AnimationClip>(
+                "Assets/GameAssets/GreatSword_Animset/Animation/GreatSword/Root/Movement/GreatSword_Jump_Start.FBX");
+        }
+
+        if (jumpLoopClip == null)
+        {
+            jumpLoopClip = UnityEditor.AssetDatabase.LoadAssetAtPath<AnimationClip>(
+                "Assets/GameAssets/GreatSword_Animset/Animation/GreatSword/Root/Movement/GreatSword_Jump_Loop.FBX");
+        }
+
+        if (jumpEndClip == null)
+        {
+            jumpEndClip = UnityEditor.AssetDatabase.LoadAssetAtPath<AnimationClip>(
+                "Assets/GameAssets/GreatSword_Animset/Animation/GreatSword/Root/Movement/GreatSword_Jump_End.FBX");
+        }
+    }
+#endif
+
+    private void OnDisable()
+    {
+        StopJumpAnimationSequence();
     }
 }
