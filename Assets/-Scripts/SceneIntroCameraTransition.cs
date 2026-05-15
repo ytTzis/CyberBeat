@@ -3,6 +3,7 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using UGG.Combat;
 
 public class SceneIntroCameraTransition : MonoBehaviour
 {
@@ -63,12 +64,14 @@ public class SceneIntroCameraTransition : MonoBehaviour
     [SerializeField, InspectorName("Fade In Duration")] private float fadeInDuration = 0.45f;
 
     private CharacterInputSystem characterInputSystem;
+    private PlayerCombatSystem playerCombatSystem;
     private TP_CameraController tpCameraController;
     private UnityTemplateProjects.SimpleCameraController simpleCameraController;
     private CanvasGroup fadeCanvasGroup;
     private Vector3 originalCameraPosition;
     private Quaternion originalCameraRotation;
     private bool originalInputEnabled;
+    private bool originalCombatEnabled;
     private bool originalTpCameraEnabled;
     private bool originalSimpleCameraEnabled;
     private Coroutine transitionCoroutine;
@@ -329,6 +332,34 @@ public class SceneIntroCameraTransition : MonoBehaviour
             characterInputSystem = FindFirstObjectByType<CharacterInputSystem>();
         }
 
+        if (forceRefresh || playerCombatSystem == null)
+        {
+            if (characterInputSystem != null)
+            {
+                playerCombatSystem = characterInputSystem.GetComponentInChildren<PlayerCombatSystem>(true);
+
+                if (playerCombatSystem == null)
+                {
+                    playerCombatSystem = characterInputSystem.GetComponentInParent<PlayerCombatSystem>(true);
+                }
+            }
+
+            if (playerCombatSystem == null && target != null)
+            {
+                playerCombatSystem = target.GetComponentInChildren<PlayerCombatSystem>(true);
+
+                if (playerCombatSystem == null)
+                {
+                    playerCombatSystem = target.GetComponentInParent<PlayerCombatSystem>(true);
+                }
+            }
+
+            if (playerCombatSystem == null)
+            {
+                playerCombatSystem = FindFirstObjectByType<PlayerCombatSystem>();
+            }
+        }
+
         if (forceRefresh || tpCameraController == null)
         {
             tpCameraController = FindFirstObjectByType<TP_CameraController>();
@@ -468,6 +499,15 @@ public class SceneIntroCameraTransition : MonoBehaviour
             }
         }
 
+        if (playerCombatSystem != null)
+        {
+            originalCombatEnabled = playerCombatSystem.enabled;
+            if (disablePlayerInput)
+            {
+                playerCombatSystem.enabled = false;
+            }
+        }
+
         if (tpCameraController != null)
         {
             originalTpCameraEnabled = tpCameraController.enabled;
@@ -492,6 +532,16 @@ public class SceneIntroCameraTransition : MonoBehaviour
         if (characterInputSystem != null)
         {
             characterInputSystem.enabled = originalInputEnabled;
+        }
+
+        if (playerCombatSystem != null)
+        {
+            playerCombatSystem.enabled = originalCombatEnabled;
+
+            if (playerCombatSystem.enabled)
+            {
+                playerCombatSystem.SetAllowAttackInput(true);
+            }
         }
 
         if (tpCameraController != null)

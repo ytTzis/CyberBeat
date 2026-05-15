@@ -66,6 +66,14 @@ namespace UGG.Combat
             highStressSkillController = GetComponentInParent<HighStressSkillController>();
         }
 
+        private void OnEnable()
+        {
+            if (!IsHighStressSkillLocked())
+            {
+                SetAllowAttackInput(true);
+            }
+        }
+
         private void Update()
         {
             PlayerAttackAction();

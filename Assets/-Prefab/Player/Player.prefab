@@ -4864,7 +4864,7 @@ MonoBehaviour:
   finalAttackMoveRecoverNormalizedTime: 0.85
   detectionCenter: {fileID: 3191567287176109791}
   detectionRang: 1
-  allowAttackInput: 0
+  allowAttackInput: 1
   attackVfxMappings:
   - stateName: GhostSamurai_APose_Attack01_1_ALL_Inplace
     vfxPrefab: {fileID: 1044528419629608, guid: 3be98662c9e7ef5468cb9c4e11010dc7, type: 3}

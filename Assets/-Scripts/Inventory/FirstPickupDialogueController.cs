@@ -10,6 +10,13 @@ public class FirstPickupDialogueController : MonoBehaviour
 
     private static float attackInputBlockedUntil;
 
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetStaticStateOnPlay()
+    {
+        IsBlockingPauseMenu = false;
+        attackInputBlockedUntil = 0f;
+    }
+
     [Header("Dialogue")]
     [SerializeField] private GameObject dialogueRoot;
     [SerializeField] private string dialogueObjectName = "Dialogue";
@@ -43,6 +50,8 @@ public class FirstPickupDialogueController : MonoBehaviour
 
     private void Awake()
     {
+        ResetStaticStateOnPlay();
+
         if (dialogueRoot == null)
         {
             GameObject foundDialogue = GameObject.Find(dialogueObjectName);
