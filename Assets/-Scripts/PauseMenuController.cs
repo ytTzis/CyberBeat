@@ -124,7 +124,10 @@ public class PauseMenuController : MonoBehaviour
             Cursor.visible = true;
         }
 
-        if (!deathMenuShown && !IsIntroTransitionActive() && Input.GetKeyDown(KeyCode.Tab))
+        if (!deathMenuShown &&
+            !IsIntroTransitionActive() &&
+            !FirstPickupDialogueController.IsBlockingPauseMenu &&
+            Input.GetKeyDown(KeyCode.Tab))
         {
             if (menuOpen) CloseMenu();
             else OpenMenu();

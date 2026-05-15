@@ -21,7 +21,8 @@ public class CharacterInputSystem : MonoBehaviour
 
     public bool playerLAtk
     {
-        get => _inputController.PlayerInput.LAtk.triggered;
+        get => !FirstPickupDialogueController.IsBlockingAttackInput &&
+               _inputController.PlayerInput.LAtk.triggered;
     }
     
     public bool playerRAtk
