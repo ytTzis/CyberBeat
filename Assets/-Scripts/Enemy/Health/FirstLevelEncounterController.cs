@@ -5,7 +5,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
-public class FirstLevelEncounterController : MonoBehaviour
+public class FirstLevelEncounterController : MonoBehaviour, ISceneIntroTransitionReceiver
 {
     [Header("Player")]
     [SerializeField] private string playerTag = "Player";
@@ -53,6 +53,7 @@ public class FirstLevelEncounterController : MonoBehaviour
     private int movementParameterId;
     private bool enemy2Activated;
     private bool enemy34Activated;
+    private bool enemy1Activated;
     private bool transitionStarted;
     private CanvasGroup fadeCanvasGroup;
     private Transform enemy34FocusAnchor;
@@ -73,6 +74,7 @@ public class FirstLevelEncounterController : MonoBehaviour
         ConfigureTrigger(area2Trigger, FirstLevelEncounterTrigger.TriggerStage.Area2);
         CachePlayerTransform();
 
+        SetEnemyCombatEnabled(enemy1, false);
         EnterEnemy2PatrolState();
         SetEnemyGroupActive(false, enemy3, enemy4);
         DisableManagedEnemyTransitions();
@@ -347,6 +349,22 @@ public class FirstLevelEncounterController : MonoBehaviour
                 animator.SetFloat(movementParameterId, 0f);
             }
         }
+    }
+
+    public void OnSceneIntroTransitionFinished()
+    {
+        ActivateEnemy1AfterIntro();
+    }
+
+    private void ActivateEnemy1AfterIntro()
+    {
+        if (enemy1Activated || enemy1 == null || enemy1.IsDead())
+        {
+            return;
+        }
+
+        enemy1Activated = true;
+        SetEnemyCombatEnabled(enemy1, true);
     }
 
     private bool TryGetEnemy2Animator(out Animator animator)
