@@ -1,7 +1,10 @@
 using UnityEngine;
+using System;
 
 public class MonstourPickup : MonoBehaviour
 {
+    public static event Action<string> ItemPickedUp;
+
     [SerializeField] private float pickupRadius = 2.2f;
     [SerializeField] private string playerTag = "Player";
     [SerializeField] private bool destroyOnPickup = true;
@@ -62,6 +65,7 @@ public class MonstourPickup : MonoBehaviour
         }
 
         DebugPickup($"Picked up '{itemId}'.");
+        ItemPickedUp?.Invoke(itemId);
         hasBeenPickedUp = true;
 
         if (destroyOnPickup)

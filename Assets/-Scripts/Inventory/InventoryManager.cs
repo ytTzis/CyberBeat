@@ -1,10 +1,12 @@
 using System.Collections.Generic;
+using System;
 using UnityEngine;
 
 [DisallowMultipleComponent]
 public class InventoryManager : MonoBehaviour
 {
     public static InventoryManager Instance { get; private set; }
+    public static event Action<string> ItemAdded;
 
     private readonly List<string> itemIds = new List<string>();
     private int selectedSlotIndex;
@@ -59,6 +61,7 @@ public class InventoryManager : MonoBehaviour
         }
 
         itemIds.Add(itemId);
+        ItemAdded?.Invoke(itemId);
         return true;
     }
 
