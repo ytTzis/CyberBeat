@@ -5,6 +5,11 @@ public class FirstSceneButton : MonoBehaviour
 {
     [SerializeField] private string targetSceneName = "BackGroundScene";
 
+    private void Awake()
+    {
+        FirstSceneHyperatePanelController.EnsureExists();
+    }
+
     public void StartGame()
     {
         EnsureHeartRateMonitoringStarted();
@@ -13,6 +18,12 @@ public class FirstSceneButton : MonoBehaviour
 
     public void QuitGame()
     {
+        if (string.Equals(gameObject.name, "Key", System.StringComparison.OrdinalIgnoreCase))
+        {
+            FirstSceneHyperatePanelController.ShowPanel();
+            return;
+        }
+
 #if UNITY_EDITOR
         UnityEditor.EditorApplication.isPlaying = false;
 #else

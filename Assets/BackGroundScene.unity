@@ -180,17 +180,20 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: 'Scenario Scenario Scenario Scenario Scenario Scenario Scenario Scenario
-    Scenario Scenario Scenario Scenario Scenario Scenario Scenario Scenario Scenario
-    Scenario Scenario Scenario Scenario Scenario Scenario Scenario Scenario Scenario
-    Scenario Scenario Scenario Scenario Scenario Scenario Scenario Scenario Scenario
-    Scenario Scenario Scenario Scenario Scenario Scenario Scenario Scenario Scenario
-    Scenario Scenario Scenario Scenario Scenario Scenario Scenario Scenario Scenario
-    Scenario Scenario Scenario Scenario Scenario Scenario Scenario Scenario Scenario
-    Scenario Scenario Scenario Scenario Scenario Scenario Scenario Scenario '
+  m_text: "A large technology corporation, NOVA CORE, has developed a human experimentation
+    system called Pulse Link. This system can monitor a person\u2019s heart rate
+    in real time and use a neural chip to control their emotions, combat abilities,
+    and physical limits. On the surface, it is promoted as a medical and enhancement
+    technology, but in reality, NOVA CORE is using it to create experimental soldiers
+    who can be completely controlled.\n\nYou were originally one of the test subjects.
+    During a system malfunction, you suddenly regained your self-awareness. However,
+    the chip is still connected to the player\u2019s heart-rate system, causing your
+    emotions, stress level, and combat state to change according to your heart rate.
+    To escape from this control, you must fight your way through the city, the subway,
+    and the space laboratory facility, find the final enemy, and defeat them."
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: ecd2d7f32e4cf1c41a959f3da193eca8, type: 2}
-  m_sharedMaterial: {fileID: -4431558830023880052, guid: ecd2d7f32e4cf1c41a959f3da193eca8, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []

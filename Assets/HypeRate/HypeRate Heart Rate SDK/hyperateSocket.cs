@@ -9,10 +9,14 @@ using NativeWebSocket;
 [DisallowMultipleComponent]
 public class hyperateSocket : MonoBehaviour
 {
+    public const string WebsocketTokenPlayerPrefsKey = "Hyperate.WebsocketToken";
+    public const string HyperateIdPlayerPrefsKey = "Hyperate.HyperateId";
+    public const string DefaultWebsocketToken = "WqUFS31Br1CochGoJQLtAahFBkMmvVfAXKUPJXlF";
+    public const string DefaultHyperateId = "1H8Q6F6";
 
 	// Put your websocket Token ID here
-    public string websocketToken = "WqUFS31Br1CochGoJQLtAahFBkMmvVfAXKUPJXlF"; 
-    public string hyperateID = "1H8Q6F6";
+    public string websocketToken = DefaultWebsocketToken; 
+    public string hyperateID = DefaultHyperateId;
     [Header("Lifecycle")]
     [SerializeField] private bool dontDestroyOnLoad = true;
     [SerializeField] private bool autoConnectOnStart = true;
@@ -31,6 +35,7 @@ public class hyperateSocket : MonoBehaviour
     public static int CurrentHeartRate = 0;
     WebSocket websocket;
     private static hyperateSocket instance;
+    public static hyperateSocket Instance => instance;
 
     public string ConnectionStatus => connectionStatus;
     public bool JoinedHeartRateChannel => joinedHeartRateChannel;
@@ -48,6 +53,7 @@ public class hyperateSocket : MonoBehaviour
         }
 
         instance = this;
+        LoadStoredCredentials();
         if (dontDestroyOnLoad)
         {
             if (transform.parent != null)
@@ -77,6 +83,16 @@ public class hyperateSocket : MonoBehaviour
     {
         if (websocket != null && websocket.State == WebSocketState.Open)
         {
+            return;
+        }
+
+        LoadStoredCredentials();
+        if (string.IsNullOrWhiteSpace(websocketToken) || string.IsNullOrWhiteSpace(hyperateID))
+        {
+            connectionStatus = "Missing credentials";
+            lastSocketEvent = "MissingCredentials";
+            lastError = "Websocket token or Hyperate ID is empty.";
+            Debug.LogWarning("[Hyperate] Cannot connect because the websocket token or Hyperate ID is empty.");
             return;
         }
 
@@ -169,9 +185,77 @@ public class hyperateSocket : MonoBehaviour
             }
         };
 
-        InvokeRepeating("SendHeartbeat", 1.0f, 15.0f);
+        CancelInvoke(nameof(SendHeartbeat));
+        InvokeRepeating(nameof(SendHeartbeat), 1.0f, 15.0f);
 
         await websocket.Connect();
+    }
+
+    public void ApplyCredentials(string token, string id)
+    {
+        websocketToken = token?.Trim() ?? string.Empty;
+        hyperateID = id?.Trim() ?? string.Empty;
+    }
+
+    public async void ApplyCredentialsAndReconnect(string token, string id)
+    {
+        ApplyCredentials(token, id);
+        await ReconnectSocket();
+    }
+
+    public static void SaveCredentials(string token, string id)
+    {
+        string trimmedToken = token?.Trim() ?? string.Empty;
+        string trimmedId = id?.Trim() ?? string.Empty;
+
+        PlayerPrefs.SetString(WebsocketTokenPlayerPrefsKey, trimmedToken);
+        PlayerPrefs.SetString(HyperateIdPlayerPrefsKey, trimmedId);
+        PlayerPrefs.Save();
+
+        if (instance != null)
+        {
+            instance.ApplyCredentials(trimmedToken, trimmedId);
+        }
+    }
+
+    private void LoadStoredCredentials()
+    {
+        websocketToken = PlayerPrefs.GetString(WebsocketTokenPlayerPrefsKey, websocketToken);
+        hyperateID = PlayerPrefs.GetString(HyperateIdPlayerPrefsKey, hyperateID);
+    }
+
+    public static string GetSavedOrDefaultWebsocketToken()
+    {
+        return PlayerPrefs.GetString(WebsocketTokenPlayerPrefsKey, DefaultWebsocketToken);
+    }
+
+    public static string GetSavedOrDefaultHyperateId()
+    {
+        return PlayerPrefs.GetString(HyperateIdPlayerPrefsKey, DefaultHyperateId);
+    }
+
+    private async System.Threading.Tasks.Task ReconnectSocket()
+    {
+        await CloseSocket();
+        await ConnectSocket();
+    }
+
+    private async System.Threading.Tasks.Task CloseSocket()
+    {
+        CancelInvoke(nameof(SendHeartbeat));
+
+        if (websocket == null)
+        {
+            return;
+        }
+
+        WebSocket currentSocket = websocket;
+        websocket = null;
+
+        if (currentSocket.State == WebSocketState.Open || currentSocket.State == WebSocketState.Connecting)
+        {
+            await currentSocket.Close();
+        }
     }
 
     void Update()
@@ -208,18 +292,17 @@ public class hyperateSocket : MonoBehaviour
 
     private async void OnApplicationQuit()
     {
-        if (websocket != null)
-        {
-            await websocket.Close();
-        }
+        await CloseSocket();
     }
 
     private async void OnDestroy()
     {
-        if (websocket != null)
+        if (instance == this)
         {
-            await websocket.Close();
+            instance = null;
         }
+
+        await CloseSocket();
     }
 
 }
