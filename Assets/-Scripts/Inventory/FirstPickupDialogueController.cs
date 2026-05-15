@@ -1,5 +1,7 @@
 using System.Collections;
 using UnityEngine;
+using UnityEngine.UI;
+using TMPro;
 
 public class FirstPickupDialogueController : MonoBehaviour
 {
@@ -11,6 +13,11 @@ public class FirstPickupDialogueController : MonoBehaviour
     [Header("Dialogue")]
     [SerializeField] private GameObject dialogueRoot;
     [SerializeField] private string dialogueObjectName = "Dialogue";
+    [SerializeField] private TMP_Text dialogueTmpText;
+    [SerializeField] private Text dialogueLegacyText;
+    [SerializeField, TextArea(2, 6)] private string dialogueMessage;
+    [SerializeField, Min(1f)] private float charactersPerSecond = 24f;
+    [SerializeField, Min(0f)] private float typingStartDelay = 0.05f;
 
     [Header("Transition")]
     [SerializeField, Min(0f)] private float slowdownDuration = 0.25f;
@@ -27,9 +34,12 @@ public class FirstPickupDialogueController : MonoBehaviour
     private bool hasShownDialogue;
     private bool isDialogueOpen;
     private bool isTransitioning;
+    private bool isTyping;
     private float previousTimeScale = 1f;
     private CanvasGroup dialogueCanvasGroup;
     private Coroutine transitionCoroutine;
+    private Coroutine typingCoroutine;
+    private string resolvedDialogueMessage;
 
     private void Awake()
     {
@@ -43,6 +53,8 @@ public class FirstPickupDialogueController : MonoBehaviour
         }
 
         CacheDialogueCanvasGroup();
+        CacheDialogueTextReferences();
+        ResolveDialogueMessage();
 
         if (hideDialogueOnStart)
         {
@@ -72,6 +84,7 @@ public class FirstPickupDialogueController : MonoBehaviour
             ResumeGameImmediate();
         }
 
+        StopTyping();
         IsBlockingPauseMenu = false;
         SetDialogueVisible(false);
     }
@@ -85,6 +98,12 @@ public class FirstPickupDialogueController : MonoBehaviour
 
         if (Input.GetKeyDown(closeKey) || (allowMouseClickToClose && Input.GetMouseButtonDown(0)))
         {
+            if (isTyping)
+            {
+                CompleteTypingImmediately();
+                return;
+            }
+
             CloseDialogue();
         }
     }
@@ -126,6 +145,8 @@ public class FirstPickupDialogueController : MonoBehaviour
             return;
         }
 
+        CacheDialogueTextReferences();
+        ResolveDialogueMessage();
         previousTimeScale = Time.timeScale;
 
         if (transitionCoroutine != null)
@@ -140,6 +161,7 @@ public class FirstPickupDialogueController : MonoBehaviour
     {
         isTransitioning = true;
         IsBlockingPauseMenu = true;
+        PrepareTypingDisplay();
         SetDialogueVisible(true);
         SetDialogueAlpha(0f);
         SetDialogueInteraction(false);
@@ -151,6 +173,7 @@ public class FirstPickupDialogueController : MonoBehaviour
         isDialogueOpen = true;
         isTransitioning = false;
         SetDialogueInteraction(true);
+        StartTyping();
         transitionCoroutine = null;
     }
 
@@ -159,6 +182,7 @@ public class FirstPickupDialogueController : MonoBehaviour
         isTransitioning = true;
         isDialogueOpen = false;
         SetDialogueInteraction(false);
+        StopTyping();
 
         yield return FadeDialogue(1f, 0f, dialogueFadeDuration);
         SetDialogueVisible(false);
@@ -189,6 +213,135 @@ public class FirstPickupDialogueController : MonoBehaviour
         if (dialogueCanvasGroup == null)
         {
             dialogueCanvasGroup = dialogueRoot.AddComponent<CanvasGroup>();
+        }
+    }
+
+    private void CacheDialogueTextReferences()
+    {
+        if (dialogueRoot == null)
+        {
+            dialogueTmpText = null;
+            dialogueLegacyText = null;
+            return;
+        }
+
+        if (dialogueTmpText == null)
+        {
+            dialogueTmpText = dialogueRoot.GetComponentInChildren<TMP_Text>(true);
+        }
+
+        if (dialogueLegacyText == null)
+        {
+            dialogueLegacyText = dialogueRoot.GetComponentInChildren<Text>(true);
+        }
+    }
+
+    private void ResolveDialogueMessage()
+    {
+        if (!string.IsNullOrEmpty(dialogueMessage))
+        {
+            resolvedDialogueMessage = dialogueMessage;
+            return;
+        }
+
+        if (dialogueTmpText != null)
+        {
+            resolvedDialogueMessage = dialogueTmpText.text;
+            return;
+        }
+
+        if (dialogueLegacyText != null)
+        {
+            resolvedDialogueMessage = dialogueLegacyText.text;
+            return;
+        }
+
+        resolvedDialogueMessage = string.Empty;
+    }
+
+    private void StartTyping()
+    {
+        StopTyping();
+
+        if (string.IsNullOrEmpty(resolvedDialogueMessage))
+        {
+            return;
+        }
+
+        typingCoroutine = StartCoroutine(TypeDialogueRoutine());
+    }
+
+    private void PrepareTypingDisplay()
+    {
+        if (string.IsNullOrEmpty(resolvedDialogueMessage))
+        {
+            return;
+        }
+
+        ApplyVisibleCharacterCount(0);
+    }
+
+    private void StopTyping()
+    {
+        if (typingCoroutine != null)
+        {
+            StopCoroutine(typingCoroutine);
+            typingCoroutine = null;
+        }
+
+        isTyping = false;
+    }
+
+    private IEnumerator TypeDialogueRoutine()
+    {
+        isTyping = true;
+        ApplyVisibleCharacterCount(0);
+
+        if (typingStartDelay > 0f)
+        {
+            yield return new WaitForSecondsRealtime(typingStartDelay);
+        }
+
+        int totalCharacters = resolvedDialogueMessage.Length;
+        float elapsed = 0f;
+
+        while (true)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            int visibleCharacters = Mathf.Clamp(Mathf.FloorToInt(elapsed * charactersPerSecond), 0, totalCharacters);
+            ApplyVisibleCharacterCount(visibleCharacters);
+
+            if (visibleCharacters >= totalCharacters)
+            {
+                break;
+            }
+
+            yield return null;
+        }
+
+        isTyping = false;
+        typingCoroutine = null;
+    }
+
+    private void CompleteTypingImmediately()
+    {
+        StopTyping();
+        ApplyVisibleCharacterCount(resolvedDialogueMessage.Length);
+    }
+
+    private void ApplyVisibleCharacterCount(int visibleCharacters)
+    {
+        if (dialogueTmpText != null)
+        {
+            dialogueTmpText.text = resolvedDialogueMessage;
+            dialogueTmpText.ForceMeshUpdate();
+            dialogueTmpText.maxVisibleCharacters = visibleCharacters;
+        }
+
+        if (dialogueLegacyText != null)
+        {
+            int safeLength = Mathf.Clamp(visibleCharacters, 0, resolvedDialogueMessage.Length);
+            dialogueLegacyText.text = resolvedDialogueMessage.Substring(0, safeLength);
         }
     }
 

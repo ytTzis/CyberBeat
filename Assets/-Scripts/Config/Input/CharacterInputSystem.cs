@@ -8,6 +8,8 @@ public class CharacterInputSystem : MonoBehaviour
 {
     private InputController _inputController;
 
+    private bool IsDialogueBlockingGameplayInput => FirstPickupDialogueController.IsBlockingPauseMenu;
+
     //Key Setting
     public Vector2 playerMovement
     {
@@ -21,32 +23,38 @@ public class CharacterInputSystem : MonoBehaviour
 
     public bool playerLAtk
     {
-        get => !FirstPickupDialogueController.IsBlockingAttackInput &&
+        get => !IsDialogueBlockingGameplayInput &&
+               !FirstPickupDialogueController.IsBlockingAttackInput &&
                _inputController.PlayerInput.LAtk.triggered;
     }
     
     public bool playerRAtk
     {
-        get => _inputController.PlayerInput.RAtk.phase == InputActionPhase.Performed;
+        get => !IsDialogueBlockingGameplayInput &&
+               _inputController.PlayerInput.RAtk.phase == InputActionPhase.Performed;
     }
     public bool playerDefen
     {
-        get => _inputController.PlayerInput.Defen.phase == InputActionPhase.Performed;
+        get => !IsDialogueBlockingGameplayInput &&
+               _inputController.PlayerInput.Defen.phase == InputActionPhase.Performed;
     }
 
     public bool playerRun
     {
-        get => _inputController.PlayerInput.Run.phase == InputActionPhase.Performed;
+        get => !IsDialogueBlockingGameplayInput &&
+               _inputController.PlayerInput.Run.phase == InputActionPhase.Performed;
     }
 
     public bool playerRoll
     {
-        get => _inputController.PlayerInput.Roll.triggered;
+        get => !IsDialogueBlockingGameplayInput &&
+               _inputController.PlayerInput.Roll.triggered;
     }
 
     public bool playerCrouch
     {
-        get => _inputController.PlayerInput.Crouch.triggered;
+        get => !IsDialogueBlockingGameplayInput &&
+               _inputController.PlayerInput.Crouch.triggered;
     }
 
     //内部函数

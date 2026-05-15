@@ -6,7 +6,7 @@ using UnityEngine;
 
 namespace UGG.Combat
 {
-    public class PlayerCombatSystem : CharacterCombatSystemBase
+    public class PlayerCombatSystem : CharacterCombatSystemBase, ISceneIntroTransitionReceiver
     {
         [System.Serializable]
         private class AttackVfxMapping
@@ -296,6 +296,11 @@ namespace UGG.Combat
         public void SetAllowAttackInput(bool allow) => allowAttackInput = allow;
 
         public LayerMask GetEnemyLayerMask() => enemyLayer;
+
+        public void OnSceneIntroTransitionFinished()
+        {
+            SetAllowAttackInput(true);
+        }
         
         #endregion
 

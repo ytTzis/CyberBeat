@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -529,18 +530,33 @@ public class SceneIntroCameraTransition : MonoBehaviour
 
     private void NotifyTransitionComplete()
     {
-        if (transitionCompleteReceivers == null)
+        bool notifiedExplicitReceiver = false;
+
+        if (transitionCompleteReceivers != null)
+        {
+            for (int i = 0; i < transitionCompleteReceivers.Length; i++)
+            {
+                MonoBehaviour receiver = transitionCompleteReceivers[i];
+                if (receiver is ISceneIntroTransitionReceiver transitionReceiver)
+                {
+                    transitionReceiver.OnSceneIntroTransitionFinished();
+                    notifiedExplicitReceiver = true;
+                }
+            }
+        }
+
+        if (notifiedExplicitReceiver)
         {
             return;
         }
 
-        for (int i = 0; i < transitionCompleteReceivers.Length; i++)
+        ISceneIntroTransitionReceiver[] receivers = FindObjectsByType<MonoBehaviour>(FindObjectsInactive.Exclude, FindObjectsSortMode.None)
+            .OfType<ISceneIntroTransitionReceiver>()
+            .ToArray();
+
+        for (int i = 0; i < receivers.Length; i++)
         {
-            MonoBehaviour receiver = transitionCompleteReceivers[i];
-            if (receiver is ISceneIntroTransitionReceiver transitionReceiver)
-            {
-                transitionReceiver.OnSceneIntroTransitionFinished();
-            }
+            receivers[i].OnSceneIntroTransitionFinished();
         }
     }
 
