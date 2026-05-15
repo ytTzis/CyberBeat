@@ -23,26 +23,32 @@ public class Scene3BossRevealTrigger : MonoBehaviour
     [Header("Reveal Focus Shot")]
     [SerializeField] private SceneIntroCameraTransition cameraTransition;
     [SerializeField] private bool playRevealFocusShot = true;
-    [SerializeField] private float focusLookHeight = 1.5f;
-    [SerializeField] private Vector3 focusStartOffset = new Vector3(0.5f, 1.9f, -5.8f);
-    [SerializeField] private Vector3 focusEndOffset = new Vector3(0.15f, 1.25f, -3.9f);
-    [SerializeField] private float focusOrbitAngle = 8f;
-    [SerializeField] private float focusDuration = 1.2f;
-    [SerializeField] private float focusHoldDuration = 0.35f;
+    [SerializeField] private float focusLookHeight = 1.85f;
+    [SerializeField] private Vector3 focusStartOffset = new Vector3(0.22f, 0.95f, -5.4f);
+    [SerializeField] private Vector3 focusEndOffset = new Vector3(0.06f, 1.18f, -4.45f);
+    [SerializeField] private float focusOrbitAngle = 1.5f;
+    [SerializeField] private float focusDuration = 3.2f;
+    [SerializeField] private float focusHoldDuration = 0.8f;
+    [SerializeField, Min(0f)] private float postLandingFocusDuration = 2f;
     [SerializeField] private bool focusInvertTargetRotation;
     [SerializeField] private AnimationCurve focusTransitionCurve = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
 
     [Header("Jump Down")]
     [SerializeField] private Transform landingPoint;
-    [SerializeField] private Vector3 landingOffset = new Vector3(0f, 0f, -1.4f);
-    [SerializeField, Min(0f)] private float jumpStartDelay = 0.2f;
+    [SerializeField] private Vector3 landingOffset = new Vector3(0f, 0f, -2.4f);
+    [SerializeField, Min(0f)] private float jumpStartDelay = 0f;
     [SerializeField, Min(0.05f)] private float jumpDuration = 1.1f;
-    [SerializeField, Min(0f)] private float jumpArcHeight = 2.6f;
+    [SerializeField, Min(0f)] private float jumpArcHeight = 1.6f;
+    [SerializeField, Range(0.1f, 0.9f)] private float jumpApexProgress = 0.34f;
     [SerializeField] private string jumpAnimatorStateName = "GS12";
     [SerializeField] private AnimationClip jumpStartClip;
     [SerializeField] private AnimationClip jumpLoopClip;
     [SerializeField] private AnimationClip jumpEndClip;
-    [SerializeField] private string landingIdleStateName = "GreatSword_Idle_Pose";
+    [SerializeField] private bool playJumpEndOnLanding = false;
+    [SerializeField, Range(0f, 1f)] private float airborneStartPoseNormalizedTime = 0.72f;
+    [SerializeField, Range(0f, 1f)] private float airborneLoopPoseNormalizedTime = 0.12f;
+    [SerializeField] private bool freezeAirborneLoopPose = true;
+    [SerializeField] private string landingIdleStateName = "BaseMotion";
     [SerializeField] private bool rotateTowardLandingPoint = true;
     [SerializeField] private bool enableCombatAfterLanding = true;
 
@@ -55,6 +61,7 @@ public class Scene3BossRevealTrigger : MonoBehaviour
     private Transform playerTransform;
     private Transform revealFocusAnchor;
     private bool hasTriggered;
+    private bool keepRevealFocusAnchorSynced;
     private bool originalCharacterControllerEnabled;
     private bool originalMovementEnabled;
     private PlayableGraph jumpPlayableGraph;
@@ -66,6 +73,7 @@ public class Scene3BossRevealTrigger : MonoBehaviour
         triggerCollider.isTrigger = true;
 
         CacheReferences();
+        PlayLandingIdlePose();
 
         if (disableEnemyCombatUntilTriggered)
         {
@@ -101,11 +109,17 @@ public class Scene3BossRevealTrigger : MonoBehaviour
         StartCoroutine(RevealBossRoutine());
     }
 
+    private void LateUpdate()
+    {
+        if (keepRevealFocusAnchorSynced)
+        {
+            UpdateRevealFocusAnchorTransform();
+        }
+    }
+
     private IEnumerator RevealBossRoutine()
     {
         SetEnemyCombatEnabled(false);
-        ShowJumpStartPose();
-
         if (playRevealFocusShot)
         {
             if (cameraTransition == null)
@@ -118,13 +132,15 @@ public class Scene3BossRevealTrigger : MonoBehaviour
                 Transform focusTarget = GetOrCreateRevealFocusAnchor();
                 if (focusTarget != null)
                 {
+                    keepRevealFocusAnchorSynced = true;
+                    float followWindow = jumpStartDelay + jumpDuration + postLandingFocusDuration;
                     SceneIntroCameraTransition.FocusShotSettings focusSettings = new SceneIntroCameraTransition.FocusShotSettings
                     {
                         LookHeight = focusLookHeight,
                         StartOffset = focusStartOffset,
                         EndOffset = focusEndOffset,
                         OrbitAngle = focusOrbitAngle,
-                        Duration = focusDuration,
+                        Duration = Mathf.Max(focusDuration, followWindow),
                         HoldDuration = focusHoldDuration,
                         // Keep the reveal camera on the player-to-enemy axis.
                         UseTargetRotation = true,
@@ -155,6 +171,8 @@ public class Scene3BossRevealTrigger : MonoBehaviour
             }
         }
 
+        keepRevealFocusAnchorSynced = false;
+
         if (enableCombatAfterLanding)
         {
             SetEnemyCombatEnabled(true);
@@ -178,6 +196,7 @@ public class Scene3BossRevealTrigger : MonoBehaviour
             enemyMover.rotation = Quaternion.LookRotation(flatDirection.normalized, Vector3.up);
         }
 
+        ShowJumpStartPose();
         CacheEnemyMotionState();
         SetEnemyMotionEnabled(false);
         StartJumpAnimationSequence();
@@ -189,7 +208,7 @@ public class Scene3BossRevealTrigger : MonoBehaviour
             float progress = jumpDuration <= 0f ? 1f : Mathf.Clamp01(timer / jumpDuration);
 
             Vector3 horizontalPosition = Vector3.Lerp(startPosition, endPosition, progress);
-            float verticalOffset = 4f * jumpArcHeight * progress * (1f - progress);
+            float verticalOffset = EvaluateJumpArc(progress);
             enemyMover.position = horizontalPosition + Vector3.up * verticalOffset;
             UpdateRevealFocusAnchorTransform();
 
@@ -199,6 +218,8 @@ public class Scene3BossRevealTrigger : MonoBehaviour
         enemyMover.position = endPosition;
         UpdateRevealFocusAnchorTransform();
         StopJumpAnimationSequence();
+        yield return PlayLandingEndAnimationRoutine();
+
         SetEnemyMotionEnabled(true);
         PlayLandingIdlePose();
     }
@@ -315,6 +336,7 @@ public class Scene3BossRevealTrigger : MonoBehaviour
         if (!isEnabled && enemyAnimator != null)
         {
             enemyAnimator.SetFloat("LockOn", 0f);
+            PlayLandingIdlePose();
         }
     }
 
@@ -348,33 +370,46 @@ public class Scene3BossRevealTrigger : MonoBehaviour
 
     private IEnumerator PlayJumpAnimationSequenceRoutine()
     {
-        float startDuration = GetClipDuration(jumpStartClip);
-        float endDuration = GetClipDuration(jumpEndClip);
-        float loopWindow = Mathf.Max(0f, jumpDuration - startDuration - endDuration);
+        float loopWindow = Mathf.Max(0f, jumpDuration);
 
-        if (jumpStartClip != null)
+        if (jumpStartClip != null && loopWindow > 0f)
         {
-            PlayJumpClip(jumpStartClip, 1d);
-            yield return WaitForSecondsRealtimeSafe(startDuration);
-        }
-
-        if (jumpLoopClip != null && loopWindow > 0f)
-        {
-            PlayJumpClip(jumpLoopClip, 1d);
+            PlayJumpClip(
+                jumpStartClip,
+                0d,
+                jumpStartClip.length * airborneStartPoseNormalizedTime);
             yield return WaitForSecondsRealtimeSafe(loopWindow);
         }
-
-        if (jumpEndClip != null)
+        else if (jumpLoopClip != null && loopWindow > 0f)
         {
-            PlayJumpClip(jumpEndClip, 1d);
-            yield return WaitForSecondsRealtimeSafe(endDuration);
+            PlayJumpClip(
+                jumpLoopClip,
+                freezeAirborneLoopPose ? 0d : 1d,
+                jumpLoopClip.length * airborneLoopPoseNormalizedTime);
+            yield return WaitForSecondsRealtimeSafe(loopWindow);
+        }
+        else if (jumpStartClip != null && loopWindow > 0f)
+        {
+            yield return WaitForSecondsRealtimeSafe(loopWindow);
         }
 
         DestroyJumpPlayableGraph();
         jumpAnimationCoroutine = null;
     }
 
-    private void PlayJumpClip(AnimationClip clip, double speed = 1d)
+    private IEnumerator PlayLandingEndAnimationRoutine()
+    {
+        if (!playJumpEndOnLanding || jumpEndClip == null)
+        {
+            yield break;
+        }
+
+        PlayJumpClip(jumpEndClip, 1d);
+        yield return WaitForSecondsRealtimeSafe(GetClipDuration(jumpEndClip));
+        DestroyJumpPlayableGraph();
+    }
+
+    private void PlayJumpClip(AnimationClip clip, double speed = 1d, double startTime = 0d)
     {
         if (clip == null || enemyAnimator == null)
         {
@@ -389,7 +424,7 @@ public class Scene3BossRevealTrigger : MonoBehaviour
         playable.SetApplyFootIK(false);
         playable.SetApplyPlayableIK(false);
         playable.SetDuration(clip.length);
-        playable.SetTime(0d);
+        playable.SetTime(Mathf.Clamp((float)startTime, 0f, clip.length));
         playable.SetSpeed(speed);
 
         output.SetSourcePlayable(playable);
@@ -414,7 +449,13 @@ public class Scene3BossRevealTrigger : MonoBehaviour
             return;
         }
 
-        enemyAnimator.Play(landingIdleStateName, 0, 0f);
+        enemyAnimator.SetFloat("LockOn", 0f);
+        enemyAnimator.SetFloat("Movement", 0f);
+        enemyAnimator.SetFloat("Run", 0f);
+        enemyAnimator.SetFloat("Crouch", 0f);
+        enemyAnimator.SetFloat("Horizontal", 0f);
+        enemyAnimator.SetFloat("Vertical", 0f);
+        enemyAnimator.CrossFadeInFixedTime(landingIdleStateName, 0.08f, 0, 0f);
         enemyAnimator.Update(0f);
     }
 
@@ -455,6 +496,20 @@ public class Scene3BossRevealTrigger : MonoBehaviour
     private static float GetClipDuration(AnimationClip clip)
     {
         return clip != null ? Mathf.Max(0f, clip.length) : 0f;
+    }
+
+    private float EvaluateJumpArc(float progress)
+    {
+        float apex = Mathf.Clamp(jumpApexProgress, 0.1f, 0.9f);
+
+        if (progress <= apex)
+        {
+            float riseProgress = progress / apex;
+            return jumpArcHeight * Mathf.Sin(riseProgress * Mathf.PI * 0.5f);
+        }
+
+        float fallProgress = (progress - apex) / (1f - apex);
+        return jumpArcHeight * Mathf.Cos(fallProgress * Mathf.PI * 0.5f);
     }
 
     private Vector3 GetLandingPosition()
@@ -572,19 +627,19 @@ public class Scene3BossRevealTrigger : MonoBehaviour
         if (jumpStartClip == null)
         {
             jumpStartClip = UnityEditor.AssetDatabase.LoadAssetAtPath<AnimationClip>(
-                "Assets/GameAssets/GreatSword_Animset/Animation/GreatSword/Root/Movement/GreatSword_Jump_Start.FBX");
+                "Assets/GameAssets/GreatSword_Animset/Animation/GreatSword/Inplace/Movement/Inplace_GreatSword_Jump_Start.FBX");
         }
 
         if (jumpLoopClip == null)
         {
             jumpLoopClip = UnityEditor.AssetDatabase.LoadAssetAtPath<AnimationClip>(
-                "Assets/GameAssets/GreatSword_Animset/Animation/GreatSword/Root/Movement/GreatSword_Jump_Loop.FBX");
+                "Assets/GameAssets/GreatSword_Animset/Animation/GreatSword/Inplace/Movement/Inplace_GreatSword_Jump_Loop.FBX");
         }
 
         if (jumpEndClip == null)
         {
             jumpEndClip = UnityEditor.AssetDatabase.LoadAssetAtPath<AnimationClip>(
-                "Assets/GameAssets/GreatSword_Animset/Animation/GreatSword/Root/Movement/GreatSword_Jump_End.FBX");
+                "Assets/GameAssets/GreatSword_Animset/Animation/GreatSword/Inplace/Movement/Inplace_GreatSword_Jump_End.FBX");
         }
     }
 #endif
