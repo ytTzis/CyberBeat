@@ -580,24 +580,23 @@ public class SceneIntroCameraTransition : MonoBehaviour
 
     private void NotifyTransitionComplete()
     {
-        bool notifiedExplicitReceiver = false;
+        ISceneIntroTransitionReceiver[] explicitReceivers = System.Array.Empty<ISceneIntroTransitionReceiver>();
 
         if (transitionCompleteReceivers != null)
         {
+            System.Collections.Generic.List<ISceneIntroTransitionReceiver> resolvedExplicitReceivers = new System.Collections.Generic.List<ISceneIntroTransitionReceiver>();
+
             for (int i = 0; i < transitionCompleteReceivers.Length; i++)
             {
                 MonoBehaviour receiver = transitionCompleteReceivers[i];
                 if (receiver is ISceneIntroTransitionReceiver transitionReceiver)
                 {
                     transitionReceiver.OnSceneIntroTransitionFinished();
-                    notifiedExplicitReceiver = true;
+                    resolvedExplicitReceivers.Add(transitionReceiver);
                 }
             }
-        }
 
-        if (notifiedExplicitReceiver)
-        {
-            return;
+            explicitReceivers = resolvedExplicitReceivers.ToArray();
         }
 
         ISceneIntroTransitionReceiver[] receivers = FindObjectsByType<MonoBehaviour>(FindObjectsInactive.Exclude, FindObjectsSortMode.None)
@@ -606,6 +605,11 @@ public class SceneIntroCameraTransition : MonoBehaviour
 
         for (int i = 0; i < receivers.Length; i++)
         {
+            if (System.Array.IndexOf(explicitReceivers, receivers[i]) >= 0)
+            {
+                continue;
+            }
+
             receivers[i].OnSceneIntroTransitionFinished();
         }
     }

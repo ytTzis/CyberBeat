@@ -10,7 +10,9 @@ public class CharacterInputSystem : MonoBehaviour
 
     private bool IsGameplayInputBlocked =>
         FirstPickupDialogueController.IsBlockingPauseMenu ||
-        Area2DialogueController.IsBlockingPauseMenu;
+        Area2DialogueController.IsBlockingPauseMenu ||
+        Scene2IntroDialogueController.IsBlockingPauseMenu ||
+        Scene3IntroDialogueController.IsBlockingPauseMenu;
 
     //Key Setting
     public Vector2 playerMovement
@@ -28,6 +30,8 @@ public class CharacterInputSystem : MonoBehaviour
         get => !IsGameplayInputBlocked &&
                !FirstPickupDialogueController.IsBlockingAttackInput &&
                !Area2DialogueController.IsBlockingAttackInput &&
+               !Scene2IntroDialogueController.IsBlockingAttackInput &&
+               !Scene3IntroDialogueController.IsBlockingAttackInput &&
                _inputController.PlayerInput.LAtk.triggered;
     }
     

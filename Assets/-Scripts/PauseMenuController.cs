@@ -128,6 +128,8 @@ public class PauseMenuController : MonoBehaviour
             !IsIntroTransitionActive() &&
             !FirstPickupDialogueController.IsBlockingPauseMenu &&
             !Area2DialogueController.IsBlockingPauseMenu &&
+            !Scene2IntroDialogueController.IsBlockingPauseMenu &&
+            !Scene3IntroDialogueController.IsBlockingPauseMenu &&
             Input.GetKeyDown(KeyCode.Tab))
         {
             if (menuOpen) CloseMenu();
