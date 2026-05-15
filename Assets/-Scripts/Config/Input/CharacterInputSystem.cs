@@ -8,52 +8,52 @@ public class CharacterInputSystem : MonoBehaviour
 {
     private InputController _inputController;
 
-    private bool IsDialogueBlockingGameplayInput => FirstPickupDialogueController.IsBlockingPauseMenu;
+    private bool IsGameplayInputBlocked => FirstPickupDialogueController.IsBlockingPauseMenu;
 
     //Key Setting
     public Vector2 playerMovement
     {
-        get => _inputController.PlayerInput.Movement.ReadValue<Vector2>();
+        get => IsGameplayInputBlocked ? Vector2.zero : _inputController.PlayerInput.Movement.ReadValue<Vector2>();
     }
 
     public Vector2 cameraLook
     {
-        get => _inputController.PlayerInput.CameraLook.ReadValue<Vector2>();
+        get => IsGameplayInputBlocked ? Vector2.zero : _inputController.PlayerInput.CameraLook.ReadValue<Vector2>();
     }
 
     public bool playerLAtk
     {
-        get => !IsDialogueBlockingGameplayInput &&
+        get => !IsGameplayInputBlocked &&
                !FirstPickupDialogueController.IsBlockingAttackInput &&
                _inputController.PlayerInput.LAtk.triggered;
     }
     
     public bool playerRAtk
     {
-        get => !IsDialogueBlockingGameplayInput &&
+        get => !IsGameplayInputBlocked &&
                _inputController.PlayerInput.RAtk.phase == InputActionPhase.Performed;
     }
     public bool playerDefen
     {
-        get => !IsDialogueBlockingGameplayInput &&
+        get => !IsGameplayInputBlocked &&
                _inputController.PlayerInput.Defen.phase == InputActionPhase.Performed;
     }
 
     public bool playerRun
     {
-        get => !IsDialogueBlockingGameplayInput &&
+        get => !IsGameplayInputBlocked &&
                _inputController.PlayerInput.Run.phase == InputActionPhase.Performed;
     }
 
     public bool playerRoll
     {
-        get => !IsDialogueBlockingGameplayInput &&
+        get => !IsGameplayInputBlocked &&
                _inputController.PlayerInput.Roll.triggered;
     }
 
     public bool playerCrouch
     {
-        get => !IsDialogueBlockingGameplayInput &&
+        get => !IsGameplayInputBlocked &&
                _inputController.PlayerInput.Crouch.triggered;
     }
 

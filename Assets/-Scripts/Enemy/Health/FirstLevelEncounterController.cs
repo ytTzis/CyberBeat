@@ -21,6 +21,19 @@ public class FirstLevelEncounterController : MonoBehaviour
     [SerializeField] private FirstLevelEncounterTrigger area1Trigger;
     [SerializeField] private FirstLevelEncounterTrigger area2Trigger;
 
+    [Header("Enemy3/4 Reveal Focus")]
+    [SerializeField] private SceneIntroCameraTransition cameraTransition;
+    [SerializeField] private bool playEnemy34RevealFocusShot = true;
+    [SerializeField] private float enemy34FocusLookHeight = 1.6f;
+    [SerializeField] private Vector3 enemy34FocusStartOffset = new Vector3(0f, 2.2f, -8f);
+    [SerializeField] private Vector3 enemy34FocusEndOffset = new Vector3(0f, 1.6f, -6.2f);
+    [SerializeField] private float enemy34FocusOrbitAngle = 0f;
+    [SerializeField] private float enemy34FocusDuration = 1.25f;
+    [SerializeField] private float enemy34FocusHoldDuration = 0.4f;
+    [SerializeField] private bool enemy34FocusUseTargetRotation;
+    [SerializeField] private bool enemy34FocusInvertTargetRotation;
+    [SerializeField] private AnimationCurve enemy34FocusTransitionCurve = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
+
     [Header("Enemy2 Patrol Before Activation")]
     [SerializeField, Min(0f)] private float enemy2PatrolDistanceX = 2.5f;
     [SerializeField, Min(0f)] private float enemy2PatrolSpeed = 1.5f;
@@ -42,6 +55,7 @@ public class FirstLevelEncounterController : MonoBehaviour
     private bool enemy34Activated;
     private bool transitionStarted;
     private CanvasGroup fadeCanvasGroup;
+    private Transform enemy34FocusAnchor;
 
     private void Awake()
     {
@@ -189,6 +203,7 @@ public class FirstLevelEncounterController : MonoBehaviour
 
         enemy34Activated = true;
         SetEnemyGroupActive(true, enemy3, enemy4);
+        PlayEnemy34RevealFocusShot();
 
         if (area2Trigger != null)
         {
@@ -397,6 +412,103 @@ public class FirstLevelEncounterController : MonoBehaviour
         {
             transitions[i].enabled = false;
         }
+    }
+
+    private void PlayEnemy34RevealFocusShot()
+    {
+        if (!playEnemy34RevealFocusShot)
+        {
+            return;
+        }
+
+        if (cameraTransition == null)
+        {
+            cameraTransition = FindFirstObjectByType<SceneIntroCameraTransition>();
+        }
+
+        if (cameraTransition == null)
+        {
+            return;
+        }
+
+        Transform focusTarget = GetOrCreateEnemy34FocusAnchor();
+        if (focusTarget == null)
+        {
+            return;
+        }
+
+        SceneIntroCameraTransition.FocusShotSettings focusSettings = new SceneIntroCameraTransition.FocusShotSettings
+        {
+            LookHeight = enemy34FocusLookHeight,
+            StartOffset = enemy34FocusStartOffset,
+            EndOffset = enemy34FocusEndOffset,
+            OrbitAngle = enemy34FocusOrbitAngle,
+            Duration = enemy34FocusDuration,
+            HoldDuration = enemy34FocusHoldDuration,
+            // Keep the reveal camera on the player-to-enemy axis.
+            UseTargetRotation = true,
+            InvertTargetRotation = enemy34FocusInvertTargetRotation,
+            LockTargetTransform = true,
+            TransitionCurve = enemy34FocusTransitionCurve
+        };
+
+        cameraTransition.PlayTemporaryFocusShot(focusTarget, focusSettings);
+    }
+
+    private Transform GetOrCreateEnemy34FocusAnchor()
+    {
+        Vector3 focusPosition = Vector3.zero;
+        int activeEnemyCount = 0;
+
+        if (enemy3 != null)
+        {
+            focusPosition += enemy3.transform.position;
+            activeEnemyCount++;
+        }
+
+        if (enemy4 != null)
+        {
+            focusPosition += enemy4.transform.position;
+            activeEnemyCount++;
+        }
+
+        if (activeEnemyCount == 0)
+        {
+            return null;
+        }
+
+        focusPosition /= activeEnemyCount;
+
+        if (enemy34FocusAnchor == null)
+        {
+            GameObject anchorObject = new GameObject("Enemy34RevealFocusAnchor");
+            enemy34FocusAnchor = anchorObject.transform;
+        }
+
+        enemy34FocusAnchor.position = focusPosition;
+
+        Vector3 forward = Vector3.forward;
+        if (playerTransform != null)
+        {
+            Vector3 playerToEnemies = focusPosition - playerTransform.position;
+            playerToEnemies.y = 0f;
+            if (playerToEnemies.sqrMagnitude > 0.001f)
+            {
+                forward = playerToEnemies.normalized;
+            }
+        }
+        else if (enemy3 != null)
+        {
+            Vector3 enemyForward = enemy3.transform.forward;
+            enemyForward.y = 0f;
+            if (enemyForward.sqrMagnitude > 0.001f)
+            {
+                forward = enemyForward.normalized;
+            }
+        }
+
+        enemy34FocusAnchor.rotation = Quaternion.LookRotation(forward, Vector3.up);
+        return enemy34FocusAnchor;
     }
 
     private IEnumerator TransitionRoutine()
