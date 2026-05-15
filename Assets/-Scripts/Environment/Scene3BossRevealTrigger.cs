@@ -19,6 +19,7 @@ public class Scene3BossRevealTrigger : MonoBehaviour
     [SerializeField] private GameObject enemy2Root;
     [SerializeField] private bool disableEnemyCombatUntilTriggered = true;
     [SerializeField] private bool triggerOnlyOnce = true;
+    [SerializeField] private BossTurnDialogueController bossTurnDialogueController;
 
     [Header("Reveal Focus Shot")]
     [SerializeField] private SceneIntroCameraTransition cameraTransition;
@@ -51,6 +52,11 @@ public class Scene3BossRevealTrigger : MonoBehaviour
     [SerializeField] private string landingIdleStateName = "BaseMotion";
     [SerializeField] private bool rotateTowardLandingPoint = true;
     [SerializeField] private bool enableCombatAfterLanding = true;
+
+    [Header("Turn Reveal")]
+    [SerializeField] private bool useTurnReveal = true;
+    [SerializeField, Min(0.05f)] private float turnDuration = 0.75f;
+    [SerializeField, Min(0f)] private float postTurnFocusDuration = 0f;
 
     private CharacterHealthSystemBase enemyHealthSystem;
     private AICombatSystem enemyCombatSystem;
@@ -133,7 +139,9 @@ public class Scene3BossRevealTrigger : MonoBehaviour
                 if (focusTarget != null)
                 {
                     keepRevealFocusAnchorSynced = true;
-                    float followWindow = jumpStartDelay + jumpDuration + postLandingFocusDuration;
+                    float followWindow = useTurnReveal
+                        ? turnDuration + postTurnFocusDuration
+                        : jumpStartDelay + jumpDuration + postLandingFocusDuration;
                     SceneIntroCameraTransition.FocusShotSettings focusSettings = new SceneIntroCameraTransition.FocusShotSettings
                     {
                         LookHeight = focusLookHeight,
@@ -146,8 +154,8 @@ public class Scene3BossRevealTrigger : MonoBehaviour
                         UseTargetRotation = true,
                         // Stay on the player's side of the axis instead of flipping behind Enemy2.
                         InvertTargetRotation = false,
-                        // Follow Enemy2 as it jumps down instead of locking to the initial perch.
-                        LockTargetTransform = false,
+                        // A close turn reveal should stay tight on Enemy2 instead of drifting.
+                        LockTargetTransform = useTurnReveal,
                         TransitionCurve = focusTransitionCurve
                     };
 
@@ -156,12 +164,33 @@ public class Scene3BossRevealTrigger : MonoBehaviour
             }
         }
 
-        if (jumpStartDelay > 0f)
+        if (useTurnReveal)
         {
-            yield return new WaitForSecondsRealtime(jumpStartDelay);
+            yield return TurnEnemyTowardPlayerRoutine();
+            if (postTurnFocusDuration > 0f)
+            {
+                yield return WaitForSecondsRealtimeSafe(postTurnFocusDuration);
+            }
+        }
+        else
+        {
+            if (jumpStartDelay > 0f)
+            {
+                yield return new WaitForSecondsRealtime(jumpStartDelay);
+            }
+
+            yield return JumpEnemyDownRoutine();
         }
 
-        yield return JumpEnemyDownRoutine();
+        if (bossTurnDialogueController != null)
+        {
+            bossTurnDialogueController.ShowDialogueAfterBossTurn();
+
+            while (bossTurnDialogueController.IsDialogueActiveOrTransitioning)
+            {
+                yield return null;
+            }
+        }
 
         if (cameraTransition != null)
         {
@@ -177,6 +206,47 @@ public class Scene3BossRevealTrigger : MonoBehaviour
         {
             SetEnemyCombatEnabled(true);
         }
+    }
+
+    private IEnumerator TurnEnemyTowardPlayerRoutine()
+    {
+        if (enemyMover == null)
+        {
+            yield break;
+        }
+
+        Vector3 targetForward = enemyMover.forward;
+        if (playerTransform != null)
+        {
+            Vector3 toPlayer = playerTransform.position - enemyMover.position;
+            toPlayer.y = 0f;
+            if (toPlayer.sqrMagnitude > 0.001f)
+            {
+                targetForward = toPlayer.normalized;
+            }
+        }
+
+        Quaternion startRotation = enemyMover.rotation;
+        Quaternion targetRotation = Quaternion.LookRotation(targetForward, Vector3.up);
+
+        CacheEnemyMotionState();
+        SetEnemyMotionEnabled(false);
+        PlayLandingIdlePose();
+
+        float timer = 0f;
+        while (timer < turnDuration)
+        {
+            timer += Time.unscaledDeltaTime;
+            float t = turnDuration <= 0f ? 1f : Mathf.Clamp01(timer / turnDuration);
+            enemyMover.rotation = Quaternion.Slerp(startRotation, targetRotation, t);
+            UpdateRevealFocusAnchorTransform();
+            yield return null;
+        }
+
+        enemyMover.rotation = targetRotation;
+        UpdateRevealFocusAnchorTransform();
+        SetEnemyMotionEnabled(true);
+        PlayLandingIdlePose();
     }
 
     private IEnumerator JumpEnemyDownRoutine()
@@ -237,6 +307,31 @@ public class Scene3BossRevealTrigger : MonoBehaviour
             if (inputSystem != null)
             {
                 playerTransform = inputSystem.transform;
+            }
+        }
+
+        if (bossTurnDialogueController == null)
+        {
+            BossTurnDialogueController[] dialogueControllers =
+                FindObjectsByType<BossTurnDialogueController>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+
+            for (int i = 0; i < dialogueControllers.Length; i++)
+            {
+                if (dialogueControllers[i] == null)
+                {
+                    continue;
+                }
+
+                if (dialogueControllers[i].gameObject.name == "Dialogue(5)")
+                {
+                    bossTurnDialogueController = dialogueControllers[i];
+                    break;
+                }
+            }
+
+            if (bossTurnDialogueController == null && dialogueControllers.Length > 0)
+            {
+                bossTurnDialogueController = dialogueControllers[0];
             }
         }
 

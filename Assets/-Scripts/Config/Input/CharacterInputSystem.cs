@@ -12,7 +12,8 @@ public class CharacterInputSystem : MonoBehaviour
         FirstPickupDialogueController.IsBlockingPauseMenu ||
         Area2DialogueController.IsBlockingPauseMenu ||
         Scene2IntroDialogueController.IsBlockingPauseMenu ||
-        Scene3IntroDialogueController.IsBlockingPauseMenu;
+        Scene3IntroDialogueController.IsBlockingPauseMenu ||
+        BossTurnDialogueController.IsBlockingPauseMenu;
 
     //Key Setting
     public Vector2 playerMovement
@@ -32,6 +33,7 @@ public class CharacterInputSystem : MonoBehaviour
                !Area2DialogueController.IsBlockingAttackInput &&
                !Scene2IntroDialogueController.IsBlockingAttackInput &&
                !Scene3IntroDialogueController.IsBlockingAttackInput &&
+               !BossTurnDialogueController.IsBlockingAttackInput &&
                _inputController.PlayerInput.LAtk.triggered;
     }
     
