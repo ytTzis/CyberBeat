@@ -112,7 +112,19 @@ public class Scene3BossRevealTrigger : MonoBehaviour
         }
 
         hasTriggered = true;
+        StopBackgroundMusic();
         StartCoroutine(RevealBossRoutine());
+    }
+
+    private void StopBackgroundMusic()
+    {
+        Scene3BackgroundMusicController backgroundMusicController =
+            FindFirstObjectByType<Scene3BackgroundMusicController>(FindObjectsInactive.Exclude);
+
+        if (backgroundMusicController != null)
+        {
+            backgroundMusicController.StopMusic();
+        }
     }
 
     private void LateUpdate()

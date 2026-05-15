@@ -255,10 +255,22 @@ public class Scene3IntroDialogueController : MonoBehaviour, ISceneIntroTransitio
         yield return FadeDialogue(1f, 0f, dialogueFadeDuration);
         SetDialogueVisible(false);
         yield return LerpTimeScale(0f, GetResumeTimeScale(), resumeDuration);
+        TriggerBackgroundMusicAfterDialogue();
 
         isTransitioning = false;
         IsBlockingPauseMenu = false;
         transitionCoroutine = null;
+    }
+
+    private void TriggerBackgroundMusicAfterDialogue()
+    {
+        Scene3BackgroundMusicController backgroundMusicController =
+            FindFirstObjectByType<Scene3BackgroundMusicController>(FindObjectsInactive.Exclude);
+
+        if (backgroundMusicController != null)
+        {
+            backgroundMusicController.PlayMusic();
+        }
     }
 
     private void SetDialogueVisible(bool visible)
