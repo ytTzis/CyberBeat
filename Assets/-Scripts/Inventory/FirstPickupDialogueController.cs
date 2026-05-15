@@ -9,6 +9,7 @@ public class FirstPickupDialogueController : MonoBehaviour
     public static bool IsBlockingAttackInput => Time.unscaledTime < attackInputBlockedUntil;
 
     private static float attackInputBlockedUntil;
+    private static FirstPickupDialogueController firstPickupDialogueController;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void ResetStaticStateOnPlay()
@@ -20,6 +21,7 @@ public class FirstPickupDialogueController : MonoBehaviour
     [Header("Dialogue")]
     [SerializeField] private GameObject dialogueRoot;
     [SerializeField] private string dialogueObjectName = "Dialogue";
+    [SerializeField] private bool listenForFirstPickup = true;
     [SerializeField] private TMP_Text dialogueTmpText;
     [SerializeField] private Text dialogueLegacyText;
     [SerializeField, TextArea(2, 6)] private string dialogueMessage;
@@ -47,6 +49,7 @@ public class FirstPickupDialogueController : MonoBehaviour
     private Coroutine transitionCoroutine;
     private Coroutine typingCoroutine;
     private string resolvedDialogueMessage;
+    private bool isListeningForFirstPickup;
 
     private void Awake()
     {
@@ -69,16 +72,23 @@ public class FirstPickupDialogueController : MonoBehaviour
         {
             SetDialogueVisible(false);
         }
+
+        RegisterAsFirstPickupControllerIfNeeded();
     }
 
     private void OnEnable()
     {
-        InventoryManager.ItemAdded += HandleItemPickedUp;
+        RefreshFirstPickupListener();
     }
 
     private void OnDisable()
     {
-        InventoryManager.ItemAdded -= HandleItemPickedUp;
+        UnregisterFirstPickupListener();
+
+        if (firstPickupDialogueController == this)
+        {
+            firstPickupDialogueController = null;
+        }
 
         if (transitionCoroutine != null)
         {
@@ -135,7 +145,60 @@ public class FirstPickupDialogueController : MonoBehaviour
         transitionCoroutine = StartCoroutine(CloseDialogueRoutine());
     }
 
+    public static void ShowFirstPickupDialogueIfAvailable()
+    {
+        if (firstPickupDialogueController == null)
+        {
+            return;
+        }
+
+        firstPickupDialogueController.ShowDialogueFromFirstPickup();
+    }
+
     private void HandleItemPickedUp(string itemId)
+    {
+        ShowDialogueFromFirstPickup();
+    }
+
+    private void RefreshFirstPickupListener()
+    {
+        if (listenForFirstPickup)
+        {
+            if (isListeningForFirstPickup)
+            {
+                return;
+            }
+
+            InventoryManager.ItemAdded += HandleItemPickedUp;
+            isListeningForFirstPickup = true;
+            return;
+        }
+
+        UnregisterFirstPickupListener();
+    }
+
+    private void UnregisterFirstPickupListener()
+    {
+        if (!isListeningForFirstPickup)
+        {
+            return;
+        }
+
+        InventoryManager.ItemAdded -= HandleItemPickedUp;
+        isListeningForFirstPickup = false;
+    }
+
+    private void RegisterAsFirstPickupControllerIfNeeded()
+    {
+        if (!listenForFirstPickup)
+        {
+            return;
+        }
+
+        firstPickupDialogueController = this;
+    }
+
+    private void ShowDialogueFromFirstPickup()
     {
         if (hasShownDialogue)
         {

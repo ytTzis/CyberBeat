@@ -34,6 +34,12 @@ public class FirstLevelEncounterController : MonoBehaviour, ISceneIntroTransitio
     [SerializeField] private bool enemy34FocusInvertTargetRotation;
     [SerializeField] private AnimationCurve enemy34FocusTransitionCurve = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
 
+    [Header("Area2 Dialogue")]
+    [SerializeField] private bool showArea2DialogueAfterReveal = true;
+    [SerializeField] private GameObject area2DialogueRoot;
+    [SerializeField] private string area2DialogueObjectName = "Dialogue (1)";
+    [SerializeField] private float area2DialogueTriggerDelay = 0.05f;
+
     [Header("Enemy2 Patrol Before Activation")]
     [SerializeField, Min(0f)] private float enemy2PatrolDistanceX = 2.5f;
     [SerializeField, Min(0f)] private float enemy2PatrolSpeed = 1.5f;
@@ -57,6 +63,8 @@ public class FirstLevelEncounterController : MonoBehaviour, ISceneIntroTransitio
     private bool transitionStarted;
     private CanvasGroup fadeCanvasGroup;
     private Transform enemy34FocusAnchor;
+    private Area2DialogueController area2DialogueController;
+    private Coroutine area2DialogueCoroutine;
 
     private void Awake()
     {
@@ -78,6 +86,7 @@ public class FirstLevelEncounterController : MonoBehaviour, ISceneIntroTransitio
         EnterEnemy2PatrolState();
         SetEnemyGroupActive(false, enemy3, enemy4);
         DisableManagedEnemyTransitions();
+        EnsureArea2DialogueController();
     }
 
     private void Update()
@@ -206,6 +215,7 @@ public class FirstLevelEncounterController : MonoBehaviour, ISceneIntroTransitio
         enemy34Activated = true;
         SetEnemyGroupActive(true, enemy3, enemy4);
         PlayEnemy34RevealFocusShot();
+        BeginArea2DialogueAfterReveal();
 
         if (area2Trigger != null)
         {
@@ -471,6 +481,145 @@ public class FirstLevelEncounterController : MonoBehaviour, ISceneIntroTransitio
         };
 
         cameraTransition.PlayTemporaryFocusShot(focusTarget, focusSettings);
+    }
+
+    private void BeginArea2DialogueAfterReveal()
+    {
+        if (!showArea2DialogueAfterReveal)
+        {
+            return;
+        }
+
+        if (area2DialogueCoroutine != null)
+        {
+            StopCoroutine(area2DialogueCoroutine);
+        }
+
+        area2DialogueCoroutine = StartCoroutine(ShowArea2DialogueAfterRevealRoutine());
+    }
+
+    private IEnumerator ShowArea2DialogueAfterRevealRoutine()
+    {
+        yield return null;
+
+        if (cameraTransition != null)
+        {
+            while (cameraTransition.IsTransitioning)
+            {
+                yield return null;
+            }
+        }
+
+        if (area2DialogueTriggerDelay > 0f)
+        {
+            yield return new WaitForSecondsRealtime(area2DialogueTriggerDelay);
+        }
+
+        EnsureArea2DialogueController();
+
+        if (area2DialogueController != null)
+        {
+            area2DialogueController.ShowDialogueAfterArea2();
+        }
+
+        area2DialogueCoroutine = null;
+    }
+
+    private void EnsureArea2DialogueController()
+    {
+        if (area2DialogueController == null)
+        {
+            if (area2DialogueRoot != null)
+            {
+                area2DialogueController = area2DialogueRoot.GetComponent<Area2DialogueController>();
+                if (area2DialogueController == null)
+                {
+                    area2DialogueController = area2DialogueRoot.GetComponentInParent<Area2DialogueController>();
+                }
+            }
+
+            if (area2DialogueController == null && !string.IsNullOrWhiteSpace(area2DialogueObjectName))
+            {
+                GameObject dialogueObject = FindSceneObjectByName(area2DialogueObjectName);
+                if (dialogueObject != null)
+                {
+                    area2DialogueController = dialogueObject.GetComponent<Area2DialogueController>();
+                    if (area2DialogueController == null)
+                    {
+                        area2DialogueController = dialogueObject.GetComponentInParent<Area2DialogueController>();
+                    }
+                }
+            }
+
+            if (area2DialogueController == null)
+            {
+                Transform controllerHost = transform.Find("Area2DialogueController");
+                GameObject controllerObject;
+
+                if (controllerHost != null)
+                {
+                    controllerObject = controllerHost.gameObject;
+                }
+                else
+                {
+                    controllerObject = new GameObject("Area2DialogueController");
+                    controllerObject.transform.SetParent(transform, false);
+                }
+
+                area2DialogueController = controllerObject.GetComponent<Area2DialogueController>();
+                if (area2DialogueController == null)
+                {
+                    area2DialogueController = controllerObject.AddComponent<Area2DialogueController>();
+                }
+            }
+        }
+
+        if (area2DialogueRoot != null)
+        {
+            area2DialogueController.ConfigureDialogue(area2DialogueRoot, area2DialogueObjectName);
+        }
+    }
+
+    private static GameObject FindSceneObjectByName(string objectName)
+    {
+        if (string.IsNullOrWhiteSpace(objectName))
+        {
+            return null;
+        }
+
+        Transform[] sceneTransforms = FindObjectsByType<Transform>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        GameObject fallbackDuplicateNameMatch = null;
+
+        for (int i = 0; i < sceneTransforms.Length; i++)
+        {
+            if (sceneTransforms[i].name == objectName)
+            {
+                return sceneTransforms[i].gameObject;
+            }
+
+            if (fallbackDuplicateNameMatch == null &&
+                TryMatchUnityDuplicateDisplayName(sceneTransforms[i].name, objectName) &&
+                sceneTransforms[i].GetComponent<RectTransform>() != null)
+            {
+                fallbackDuplicateNameMatch = sceneTransforms[i].gameObject;
+            }
+        }
+
+        return fallbackDuplicateNameMatch;
+    }
+
+    private static bool TryMatchUnityDuplicateDisplayName(string actualName, string displayName)
+    {
+        const string duplicateSuffixStart = " (";
+
+        int suffixIndex = displayName.LastIndexOf(duplicateSuffixStart, System.StringComparison.Ordinal);
+        if (suffixIndex <= 0 || !displayName.EndsWith(")"))
+        {
+            return false;
+        }
+
+        string baseName = displayName.Substring(0, suffixIndex);
+        return actualName == baseName;
     }
 
     private Transform GetOrCreateEnemy34FocusAnchor()

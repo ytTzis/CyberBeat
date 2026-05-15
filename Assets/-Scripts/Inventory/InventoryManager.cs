@@ -62,6 +62,7 @@ public class InventoryManager : MonoBehaviour
 
         itemIds.Add(itemId);
         ItemAdded?.Invoke(itemId);
+        FirstPickupDialogueController.ShowFirstPickupDialogueIfAvailable();
         return true;
     }
 
