@@ -40,12 +40,14 @@ public class FinishSceneFlowController : MonoBehaviour
 
     private void Awake()
     {
+        ShowCursor();
         ResolveTextReferences();
         PrepareTextState();
     }
 
     private void OnEnable()
     {
+        ShowCursor();
         elapsed = 0f;
         nextFadeElapsed = 0f;
         isTyping = true;
@@ -228,5 +230,11 @@ public class FinishSceneFlowController : MonoBehaviour
         Color color = textComponent.color;
         color.a = alpha;
         textComponent.color = color;
+    }
+
+    private static void ShowCursor()
+    {
+        Cursor.visible = true;
+        Cursor.lockState = CursorLockMode.None;
     }
 }

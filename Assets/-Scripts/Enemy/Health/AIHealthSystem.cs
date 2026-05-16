@@ -11,6 +11,7 @@ namespace UGG.Health
     {
         private const string DefaultDeathAnimation = "GhostSamurai_Bow_Die01_Inplace";
         private const string DefaultDeathAnimationPath = "Assets/GameAssets/GreatSword_Animset/Animation/katana/APose/Die/Inplace/GhostSamurai_APose_Die05_Inplace.FBX";
+        private const string NonInterruptibleJumpAttackStateName = "JumpAttack04_1";
 
         [Header("AI HP")]
         [SerializeField] private float maxHealth = 100f;
@@ -69,6 +70,18 @@ namespace UGG.Health
                     {
                         Die();
                     }
+                }
+
+                return;
+            }
+
+            if (IsNonInterruptibleJumpAttackActive())
+            {
+                ApplyDamage(damagar);
+
+                if (currentHealth <= 0f)
+                {
+                    Die();
                 }
 
                 return;
@@ -138,6 +151,23 @@ namespace UGG.Health
         private bool IsCounterAttackActive()
         {
             return HasValidAnimator() && _animator.CheckAnimationTag("CounterAttack");
+        }
+
+        private bool IsNonInterruptibleJumpAttackActive()
+        {
+            if (!HasValidAnimator())
+            {
+                return false;
+            }
+
+            AnimatorStateInfo currentStateInfo = _animator.GetCurrentAnimatorStateInfo(0);
+            if (currentStateInfo.IsName(NonInterruptibleJumpAttackStateName))
+            {
+                return true;
+            }
+
+            return _animator.IsInTransition(0) &&
+                   _animator.GetNextAnimatorStateInfo(0).IsName(NonInterruptibleJumpAttackStateName);
         }
 
         private bool IsWithinCounterAttackInvincibleWindow()

@@ -9,6 +9,8 @@ public class FirstSceneButton : MonoBehaviour
     private void Awake()
     {
         FirstSceneHyperatePanelController.EnsureExists();
+        Cursor.visible = true;
+        Cursor.lockState = CursorLockMode.None;
     }
 
     public void StartGame()
