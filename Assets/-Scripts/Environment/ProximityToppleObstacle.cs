@@ -389,17 +389,54 @@ namespace UGG.Environment
                     continue;
                 }
 
-                GameObject visualClone = new GameObject($"{target.name}_DynamicVisual");
+                GameObject visualClone = CreateVisualClone(target);
+                if (visualClone == null)
+                {
+                    continue;
+                }
+
                 visualClone.transform.SetParent(target, false);
                 visualClone.transform.localPosition = Vector3.zero;
                 visualClone.transform.localRotation = Quaternion.identity;
                 visualClone.transform.localScale = Vector3.one;
-
-                CopyVisualHierarchy(target, visualClone.transform);
                 SetHierarchyStaticState(visualClone.transform, false);
                 DisableOriginalRenderers(target, visualClone.transform);
                 runtimeVisualClones.Add(visualClone);
             }
+        }
+
+        private static GameObject CreateVisualClone(Transform sourceRoot)
+        {
+            if (sourceRoot == null)
+            {
+                return null;
+            }
+
+            GameObject visualClone = new GameObject($"{sourceRoot.name}_DynamicVisual");
+            visualClone.layer = sourceRoot.gameObject.layer;
+            visualClone.tag = sourceRoot.gameObject.tag;
+            visualClone.SetActive(sourceRoot.gameObject.activeSelf);
+
+            CopySupportedRootVisuals(sourceRoot, visualClone.transform);
+
+            for (int i = 0; i < sourceRoot.childCount; i++)
+            {
+                Transform sourceChild = sourceRoot.GetChild(i);
+                if (sourceChild == null || sourceChild.name.EndsWith("_DynamicVisual"))
+                {
+                    continue;
+                }
+
+                GameObject childClone = Instantiate(sourceChild.gameObject);
+                childClone.name = sourceChild.name;
+                StripNonVisualComponents(childClone.transform);
+                childClone.transform.SetParent(visualClone.transform, false);
+                childClone.transform.localPosition = sourceChild.localPosition;
+                childClone.transform.localRotation = sourceChild.localRotation;
+                childClone.transform.localScale = sourceChild.localScale;
+            }
+
+            return visualClone;
         }
 
         private static bool HasRenderableHierarchy(Transform targetRoot)
@@ -422,36 +459,52 @@ namespace UGG.Environment
             return false;
         }
 
-        private static void DisableOriginalRenderers(Transform targetRoot, Transform visualCloneRoot)
+        private static void StripNonVisualComponents(Transform root)
         {
-            Renderer[] renderers = targetRoot.GetComponentsInChildren<Renderer>(true);
-            for (int i = 0; i < renderers.Length; i++)
+            if (root == null)
             {
-                Renderer renderer = renderers[i];
-                if (renderer == null)
+                return;
+            }
+
+            Transform[] allTransforms = root.GetComponentsInChildren<Transform>(true);
+            for (int i = 0; i < allTransforms.Length; i++)
+            {
+                Transform current = allTransforms[i];
+                if (current == null)
                 {
                     continue;
                 }
 
-                if (visualCloneRoot != null && renderer.transform.IsChildOf(visualCloneRoot))
+                if (current.name.EndsWith("_DynamicVisual"))
                 {
-                    continue;
+                    current.name = current.name.Replace("_DynamicVisual", string.Empty);
                 }
 
-                renderer.enabled = false;
+                Component[] components = current.GetComponents<Component>();
+                for (int j = 0; j < components.Length; j++)
+                {
+                    Component component = components[j];
+                    if (component == null || component is Transform)
+                    {
+                        continue;
+                    }
+
+                    if (component is Renderer || component is MeshFilter || component is ParticleSystem)
+                    {
+                        continue;
+                    }
+
+                    Destroy(component);
+                }
             }
         }
 
-        private static void CopyVisualHierarchy(Transform source, Transform destination)
+        private static void CopySupportedRootVisuals(Transform source, Transform destination)
         {
             if (source == null || destination == null)
             {
                 return;
             }
-
-            destination.gameObject.layer = source.gameObject.layer;
-            destination.gameObject.tag = source.gameObject.tag;
-            destination.gameObject.SetActive(source.gameObject.activeSelf);
 
             MeshFilter sourceMeshFilter = source.GetComponent<MeshFilter>();
             if (sourceMeshFilter != null)
@@ -477,17 +530,38 @@ namespace UGG.Environment
                 cloneSkinnedRenderer.updateWhenOffscreen = sourceSkinnedRenderer.updateWhenOffscreen;
             }
 
-            for (int i = 0; i < source.childCount; i++)
+            SpriteRenderer sourceSpriteRenderer = source.GetComponent<SpriteRenderer>();
+            if (sourceSpriteRenderer != null)
             {
-                Transform sourceChild = source.GetChild(i);
-                GameObject destinationChildObject = new GameObject(sourceChild.name);
-                Transform destinationChild = destinationChildObject.transform;
-                destinationChild.SetParent(destination, false);
-                destinationChild.localPosition = sourceChild.localPosition;
-                destinationChild.localRotation = sourceChild.localRotation;
-                destinationChild.localScale = sourceChild.localScale;
+                SpriteRenderer cloneSpriteRenderer = destination.gameObject.AddComponent<SpriteRenderer>();
+                CopyRendererSettings(sourceSpriteRenderer, cloneSpriteRenderer);
+                cloneSpriteRenderer.sprite = sourceSpriteRenderer.sprite;
+                cloneSpriteRenderer.drawMode = sourceSpriteRenderer.drawMode;
+                cloneSpriteRenderer.size = sourceSpriteRenderer.size;
+                cloneSpriteRenderer.color = sourceSpriteRenderer.color;
+                cloneSpriteRenderer.flipX = sourceSpriteRenderer.flipX;
+                cloneSpriteRenderer.flipY = sourceSpriteRenderer.flipY;
+                cloneSpriteRenderer.maskInteraction = sourceSpriteRenderer.maskInteraction;
+            }
+        }
 
-                CopyVisualHierarchy(sourceChild, destinationChild);
+        private static void DisableOriginalRenderers(Transform targetRoot, Transform visualCloneRoot)
+        {
+            Renderer[] renderers = targetRoot.GetComponentsInChildren<Renderer>(true);
+            for (int i = 0; i < renderers.Length; i++)
+            {
+                Renderer renderer = renderers[i];
+                if (renderer == null)
+                {
+                    continue;
+                }
+
+                if (visualCloneRoot != null && renderer.transform.IsChildOf(visualCloneRoot))
+                {
+                    continue;
+                }
+
+                renderer.enabled = false;
             }
         }
 

@@ -1,5 +1,8 @@
 using System.Collections;
 using UnityEngine;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 namespace UGG.Environment
 {
@@ -34,6 +37,20 @@ namespace UGG.Environment
         private Vector3 rightDoorOpenLocalPosition;
         private Coroutine openCoroutine;
         private Coroutine closeCoroutine;
+
+        private void OnValidate()
+        {
+            if (!Application.isPlaying)
+            {
+                if (leftDoor == null && rightDoor == null)
+                {
+                    leftDoor = transform;
+                }
+
+                CacheDoorPositions();
+                DisableStaticFlagsForDoors();
+            }
+        }
 
         private void Awake()
         {
@@ -233,13 +250,51 @@ namespace UGG.Environment
                 return;
             }
 
-            door.gameObject.isStatic = isStatic;
+            SetTargetStaticState(door.gameObject, isStatic);
 
-            Renderer[] renderers = door.GetComponentsInChildren<Renderer>();
+            Renderer[] renderers = door.GetComponentsInChildren<Renderer>(true);
             for (int i = 0; i < renderers.Length; i++)
             {
-                renderers[i].gameObject.isStatic = isStatic;
+                if (renderers[i] == null)
+                {
+                    continue;
+                }
+
+                SetTargetStaticState(renderers[i].gameObject, isStatic);
             }
+        }
+
+        private static void SetTargetStaticState(GameObject targetObject, bool isStatic)
+        {
+            if (targetObject == null)
+            {
+                return;
+            }
+
+            if (targetObject.isStatic == isStatic)
+            {
+                return;
+            }
+
+            targetObject.isStatic = isStatic;
+
+#if UNITY_EDITOR
+            if (!Application.isPlaying)
+            {
+                EditorUtility.SetDirty(targetObject);
+            }
+#endif
+        }
+
+        public void ClearStaticFlagsInEditor()
+        {
+            if (leftDoor == null && rightDoor == null)
+            {
+                leftDoor = transform;
+            }
+
+            CacheDoorPositions();
+            DisableStaticFlagsForDoors();
         }
 
         private void CacheDoorPositions()

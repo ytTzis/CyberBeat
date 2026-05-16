@@ -10,23 +10,24 @@ public sealed class ProximityToppleObstacleStaticCleaner : IPreprocessBuildWithR
 {
     public int callbackOrder => 0;
 
-    [MenuItem("Tools/Topple/Clear Static Flags In Build Scenes")]
+    [MenuItem("Tools/Dynamic Objects/Clear Static Flags In Build Scenes")]
     private static void ClearStaticFlagsInBuildScenesMenu()
     {
-        int componentCount = ClearStaticFlagsInBuildScenes();
-        Debug.Log($"[ProximityToppleObstacle] Cleared Static flags for topple hierarchies in build scenes. Components scanned: {componentCount}.");
+        (int toppleCount, int doorCount) = ClearStaticFlagsInBuildScenes();
+        Debug.Log($"[DynamicObjects] Cleared Static flags in build scenes. Topple components: {toppleCount}, door components: {doorCount}.");
     }
 
     public void OnPreprocessBuild(BuildReport report)
     {
-        int componentCount = ClearStaticFlagsInBuildScenes();
-        Debug.Log($"[ProximityToppleObstacle] Pre-build static cleanup complete. Components scanned: {componentCount}.");
+        (int toppleCount, int doorCount) = ClearStaticFlagsInBuildScenes();
+        Debug.Log($"[DynamicObjects] Pre-build static cleanup complete. Topple components: {toppleCount}, door components: {doorCount}.");
     }
 
-    private static int ClearStaticFlagsInBuildScenes()
+    private static (int toppleCount, int doorCount) ClearStaticFlagsInBuildScenes()
     {
         SceneSetup[] originalSetup = EditorSceneManager.GetSceneManagerSetup();
-        int totalComponentCount = 0;
+        int totalToppleCount = 0;
+        int totalDoorCount = 0;
 
         try
         {
@@ -40,7 +41,9 @@ public sealed class ProximityToppleObstacleStaticCleaner : IPreprocessBuildWithR
                 }
 
                 var scene = EditorSceneManager.OpenScene(buildScene.path, OpenSceneMode.Single);
-                totalComponentCount += ClearStaticFlagsInLoadedScenes();
+                (int toppleCount, int doorCount) = ClearStaticFlagsInLoadedScenes();
+                totalToppleCount += toppleCount;
+                totalDoorCount += doorCount;
                 EditorSceneManager.SaveScene(scene);
             }
         }
@@ -51,12 +54,15 @@ public sealed class ProximityToppleObstacleStaticCleaner : IPreprocessBuildWithR
 
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
-        return totalComponentCount;
+        return (totalToppleCount, totalDoorCount);
     }
 
-    private static int ClearStaticFlagsInLoadedScenes()
+    private static (int toppleCount, int doorCount) ClearStaticFlagsInLoadedScenes()
     {
         ProximityToppleObstacle[] obstacles = Object.FindObjectsByType<ProximityToppleObstacle>(
+            FindObjectsInactive.Include,
+            FindObjectsSortMode.None);
+        ProximitySlidingDoubleDoor[] doors = Object.FindObjectsByType<ProximitySlidingDoubleDoor>(
             FindObjectsInactive.Include,
             FindObjectsSortMode.None);
 
@@ -69,6 +75,7 @@ public sealed class ProximityToppleObstacleStaticCleaner : IPreprocessBuildWithR
                 continue;
             }
 
+            ClearStaticFlagsOnHostHierarchy(obstacle.transform);
             obstacle.ClearStaticFlagsInEditor();
 
             string scenePath = obstacle.gameObject.scene.path;
@@ -78,6 +85,51 @@ public sealed class ProximityToppleObstacleStaticCleaner : IPreprocessBuildWithR
             }
         }
 
-        return obstacles.Length;
+        for (int i = 0; i < doors.Length; i++)
+        {
+            ProximitySlidingDoubleDoor door = doors[i];
+            if (door == null)
+            {
+                continue;
+            }
+
+            ClearStaticFlagsOnHostHierarchy(door.transform);
+            door.ClearStaticFlagsInEditor();
+
+            string scenePath = door.gameObject.scene.path;
+            if (!string.IsNullOrEmpty(scenePath) && processedScenes.Add(scenePath))
+            {
+                EditorSceneManager.MarkSceneDirty(door.gameObject.scene);
+            }
+        }
+
+        return (obstacles.Length, doors.Length);
+    }
+
+    private static void ClearStaticFlagsOnHostHierarchy(Transform root)
+    {
+        if (root == null)
+        {
+            return;
+        }
+
+        Transform[] allTransforms = root.GetComponentsInChildren<Transform>(true);
+        for (int i = 0; i < allTransforms.Length; i++)
+        {
+            Transform current = allTransforms[i];
+            if (current == null)
+            {
+                continue;
+            }
+
+            GameObject currentObject = current.gameObject;
+            if (currentObject == null || !currentObject.isStatic)
+            {
+                continue;
+            }
+
+            currentObject.isStatic = false;
+            EditorUtility.SetDirty(currentObject);
+        }
     }
 }
