@@ -1,6 +1,9 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 namespace UGG.Environment
 {
@@ -46,6 +49,12 @@ namespace UGG.Environment
             if (toppleLocalEulerOffset == Vector3.zero)
             {
                 toppleLocalEulerOffset = new Vector3(90f, 0f, 0f);
+            }
+
+            if (!Application.isPlaying)
+            {
+                CacheToppleTargets();
+                DisableStaticFlagsForToppleTargets();
             }
         }
 
@@ -362,14 +371,50 @@ namespace UGG.Environment
             for (int i = 0; i < activeToppleTargets.Count; i++)
             {
                 Transform target = activeToppleTargets[i];
-                target.gameObject.isStatic = false;
-
-                Renderer[] renderers = target.GetComponentsInChildren<Renderer>();
-                for (int j = 0; j < renderers.Length; j++)
-                {
-                    renderers[j].gameObject.isStatic = false;
-                }
+                SetHierarchyStaticState(target, false);
             }
+        }
+
+        private static void SetHierarchyStaticState(Transform targetRoot, bool isStatic)
+        {
+            if (targetRoot == null)
+            {
+                return;
+            }
+
+            Transform[] allTransforms = targetRoot.GetComponentsInChildren<Transform>(true);
+            for (int i = 0; i < allTransforms.Length; i++)
+            {
+                SetTargetStaticState(allTransforms[i].gameObject, isStatic);
+            }
+        }
+
+        private static void SetTargetStaticState(GameObject targetObject, bool isStatic)
+        {
+            if (targetObject == null)
+            {
+                return;
+            }
+
+            if (targetObject.isStatic == isStatic)
+            {
+                return;
+            }
+
+            targetObject.isStatic = isStatic;
+
+#if UNITY_EDITOR
+            if (!Application.isPlaying)
+            {
+                EditorUtility.SetDirty(targetObject);
+            }
+#endif
+        }
+
+        public void ClearStaticFlagsInEditor()
+        {
+            CacheToppleTargets();
+            DisableStaticFlagsForToppleTargets();
         }
 
         private void OnDrawGizmosSelected()
