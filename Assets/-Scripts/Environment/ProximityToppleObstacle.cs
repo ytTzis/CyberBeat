@@ -384,7 +384,7 @@ namespace UGG.Environment
             for (int i = 0; i < activeToppleTargets.Count; i++)
             {
                 Transform target = activeToppleTargets[i];
-                if (target == null || !HasStaticRendererInHierarchy(target))
+                if (target == null || !HasRenderableHierarchy(target))
                 {
                     continue;
                 }
@@ -402,7 +402,7 @@ namespace UGG.Environment
             }
         }
 
-        private static bool HasStaticRendererInHierarchy(Transform targetRoot)
+        private static bool HasRenderableHierarchy(Transform targetRoot)
         {
             if (targetRoot == null)
             {
@@ -413,7 +413,7 @@ namespace UGG.Environment
             for (int i = 0; i < renderers.Length; i++)
             {
                 Renderer renderer = renderers[i];
-                if (renderer != null && renderer.gameObject.isStatic)
+                if (renderer != null)
                 {
                     return true;
                 }
