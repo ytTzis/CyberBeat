@@ -20,6 +20,7 @@ namespace UGG.Health
         [SerializeField] private int maxParryCount;
         [SerializeField] private int counterattackParryCount;
         [SerializeField] private float counterattackDelay = 0.5f;
+        [SerializeField, Header("Counter Attack"), Range(0f, 1f)] private float counterAttackInvincibleNormalizedTime = 0.2f;
 
         [SerializeField] private int maxHitCount;
         [SerializeField] private int hitCount;
@@ -115,8 +116,24 @@ namespace UGG.Health
                 return false;
             }
 
-            if (_animator.CheckAnimationTag("CounterAttack")) return true;
-            if (_animator.GetCurrentAnimatorStateInfo(0).IsName("GS12")) return true;
+            if (IsWithinCounterAttackInvincibleWindow()) return true;
+
+            return false;
+        }
+
+        private bool IsWithinCounterAttackInvincibleWindow()
+        {
+            AnimatorStateInfo currentStateInfo = _animator.GetCurrentAnimatorStateInfo(0);
+
+            if (_animator.CheckAnimationTag("CounterAttack"))
+            {
+                return currentStateInfo.normalizedTime <= counterAttackInvincibleNormalizedTime;
+            }
+
+            if (currentStateInfo.IsName("GS12"))
+            {
+                return currentStateInfo.normalizedTime <= counterAttackInvincibleNormalizedTime;
+            }
 
             return false;
         }
