@@ -85,8 +85,10 @@ namespace UGG.Health
                 if (currentHealth <= 0f)
                 {
                     Die();
+                    return;
                 }
 
+                GameAssets.Instance.PlaySoundEffect(_audioSource, SoundAssetsType.hit);
                 return;
             }
 
