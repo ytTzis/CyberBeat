@@ -32,6 +32,7 @@ namespace UGG.Move
 
         [SerializeField, Header("动画移动速度倍率")] private float animationMoveSpeedMult;
         [SerializeField, Header("受击提前恢复输入时间(0-1)")] [Range(0f, 1f)] private float hitRecoverNormalizedTime = 0.45f;
+        [SerializeField, Header("受击后提前恢复闪避时间(0-1)")] [Range(0f, 1f)] private float hitDodgeRecoverNormalizedTime = 0.28f;
         [SerializeField, Header("短闪移动速度"), Range(1f, 20f)] private float dodgeMoveSpeed = 7.5f;
         [SerializeField, Header("短闪冷却时间"), Range(0f, 1.5f)] private float dodgeCooldown = 0.35f;
         [SerializeField, Header("短闪动画速度"), Range(0.5f, 3f)] private float dodgeAnimationSpeed = 1.25f;
@@ -242,21 +243,32 @@ namespace UGG.Move
             bool canDodgeFromGroundMotion = isOnGround && characterAnimator.CheckAnimationTag("Motion");
             bool canDodgeFromCrouch = characterAnimator.CheckAnimationTag("CrouchMotion");
             bool canDodgeFromRecoveredHit = isOnGround &&
-                                           characterAnimator.CheckCurrentTagAnimationTimeIsExceed("Hit", hitRecoverNormalizedTime);
+                                           characterAnimator.CheckCurrentTagAnimationTimeIsExceed("Hit", hitDodgeRecoverNormalizedTime);
+            bool canDodgeFromRecoveredAttack = isOnGround &&
+                                              _playerCombatSystem != null &&
+                                              _playerCombatSystem.CanRecoverFromAttack();
+            bool canDodgeFromRecoveredParry = isOnGround &&
+                                             _playerCombatSystem != null &&
+                                             _playerCombatSystem.CanRecoverFromParryForDodge();
             bool canDodgeFromFinalAttack = isOnGround &&
                                            _playerCombatSystem != null &&
                                            _playerCombatSystem.CanRecoverMovementFromFinalAttack();
 
-            return canDodgeFromGroundMotion || canDodgeFromCrouch || canDodgeFromRecoveredHit || canDodgeFromFinalAttack;
+            return canDodgeFromGroundMotion ||
+                   canDodgeFromCrouch ||
+                   canDodgeFromRecoveredHit ||
+                   canDodgeFromRecoveredAttack ||
+                   canDodgeFromRecoveredParry ||
+                   canDodgeFromFinalAttack;
         }
 
         private bool IsInDodgeLockedState()
         {
             bool isEarlyHit = characterAnimator.CheckAnimationTag("Hit") &&
-                              !characterAnimator.CheckCurrentTagAnimationTimeIsExceed("Hit", hitRecoverNormalizedTime);
+                              !characterAnimator.CheckCurrentTagAnimationTimeIsExceed("Hit", hitDodgeRecoverNormalizedTime);
             bool isTransitioningToHit = characterAnimator.IsInTransition(0) &&
                                         characterAnimator.GetNextAnimatorStateInfo(0).IsTag("Hit") &&
-                                        !characterAnimator.CheckCurrentTagAnimationTimeIsExceed("Hit", hitRecoverNormalizedTime);
+                                        !characterAnimator.CheckCurrentTagAnimationTimeIsExceed("Hit", hitDodgeRecoverNormalizedTime);
 
             if (isEarlyHit) return true;
             if (isTransitioningToHit) return true;

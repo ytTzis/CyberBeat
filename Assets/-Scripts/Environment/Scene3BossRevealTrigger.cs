@@ -78,6 +78,7 @@ public class Scene3BossRevealTrigger : MonoBehaviour
         Collider triggerCollider = GetComponent<Collider>();
         triggerCollider.isTrigger = true;
 
+        Scene3BossDefeatFinishTransition.EnsurePresentInScene();
         CacheReferences();
         PlayLandingIdlePose();
 
@@ -359,6 +360,12 @@ public class Scene3BossRevealTrigger : MonoBehaviour
             {
                 enemyHealthSystem = enemy2Root.GetComponentInChildren<CharacterHealthSystemBase>(true);
             }
+        }
+
+        Scene3BossDefeatFinishTransition finishTransitionController = Scene3BossDefeatFinishTransition.EnsurePresentInScene();
+        if (finishTransitionController != null && enemyHealthSystem != null)
+        {
+            finishTransitionController.SetBossHealthSystem(enemyHealthSystem);
         }
 
         if (enemyCombatSystem == null)

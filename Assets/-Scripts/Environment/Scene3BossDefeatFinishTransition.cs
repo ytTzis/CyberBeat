@@ -23,18 +23,35 @@ public class Scene3BossDefeatFinishTransition : MonoBehaviour
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void BootstrapOnSceneLoad()
     {
+        EnsurePresentInScene();
+    }
+
+    public static Scene3BossDefeatFinishTransition EnsurePresentInScene()
+    {
         if (SceneManager.GetActiveScene().name != SourceSceneName)
         {
-            return;
+            return null;
         }
 
-        if (FindFirstObjectByType<Scene3BossDefeatFinishTransition>() != null)
+        Scene3BossDefeatFinishTransition existingController =
+            FindFirstObjectByType<Scene3BossDefeatFinishTransition>(FindObjectsInactive.Include);
+        if (existingController != null)
         {
-            return;
+            return existingController;
         }
 
         GameObject controllerObject = new GameObject(nameof(Scene3BossDefeatFinishTransition));
-        controllerObject.AddComponent<Scene3BossDefeatFinishTransition>();
+        return controllerObject.AddComponent<Scene3BossDefeatFinishTransition>();
+    }
+
+    public void SetBossHealthSystem(CharacterHealthSystemBase healthSystem)
+    {
+        if (healthSystem == null)
+        {
+            return;
+        }
+
+        bossHealthSystem = healthSystem;
     }
 
     private void Awake()
@@ -71,16 +88,27 @@ public class Scene3BossDefeatFinishTransition : MonoBehaviour
             return;
         }
 
-        GameObject bossObject = GameObject.Find(BossObjectName);
-        if (bossObject == null)
+        CharacterHealthSystemBase[] healthSystems =
+            FindObjectsByType<CharacterHealthSystemBase>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        if (healthSystems == null || healthSystems.Length == 0)
         {
             return;
         }
 
-        CharacterHealthSystemBase[] healthSystems = bossObject.GetComponentsInChildren<CharacterHealthSystemBase>(true);
-        if (healthSystems == null || healthSystems.Length == 0)
+        for (int i = 0; i < healthSystems.Length; i++)
         {
-            return;
+            CharacterHealthSystemBase healthSystem = healthSystems[i];
+            if (healthSystem == null)
+            {
+                continue;
+            }
+
+            if (healthSystem.gameObject.name == BossObjectName ||
+                healthSystem.transform.root.name == BossObjectName)
+            {
+                bossHealthSystem = healthSystem;
+                return;
+            }
         }
 
         for (int i = 0; i < healthSystems.Length; i++)

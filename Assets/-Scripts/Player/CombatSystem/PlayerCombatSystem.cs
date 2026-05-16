@@ -36,6 +36,8 @@ namespace UGG.Combat
         private float highStressDamageMultiplier = 1.3f;
         [SerializeField, Header("攻击提前恢复输入时间(0-1)")] [Range(0f, 1f)]
         private float attackRecoverNormalizedTime = 0.6f;
+        [SerializeField, Header("格挡后提前恢复闪避时间(0-1)")] [Range(0f, 1f)]
+        private float parryDodgeRecoverNormalizedTime = 0.18f;
         [SerializeField, Header("攻击锁敌结束时间(0-1)")] [Range(0f, 1f)]
         private float attackLockReleaseNormalizedTime = 0.55f;
         [SerializeField, Header("最后一刀提前恢复移动时间(0-1)")] [Range(0f, 1f)]
@@ -206,6 +208,12 @@ namespace UGG.Combat
                                                   _animator.GetCurrentAnimatorStateInfo(0).normalizedTime > attackRecoverNormalizedTime;
 
             return canRecoverFromNormalAttack || canRecoverFromGreatSwordAttack;
+        }
+
+        public bool CanRecoverFromParryForDodge()
+        {
+            return _animator.CheckAnimationTag("Parry") &&
+                   _animator.GetCurrentAnimatorStateInfo(0).normalizedTime >= parryDodgeRecoverNormalizedTime;
         }
 
         public bool CanRecoverMovementFromFinalAttack()
