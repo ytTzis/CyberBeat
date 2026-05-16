@@ -78,6 +78,28 @@ public class InventoryManager : MonoBehaviour
         return true;
     }
 
+    public void ClearInventory()
+    {
+        itemIds.Clear();
+        selectedSlotIndex = 0;
+    }
+
+    public static void ResetPersistentInventory()
+    {
+        if (Instance == null)
+        {
+            InventoryManager existingManager = FindFirstObjectByType<InventoryManager>();
+            if (existingManager == null)
+            {
+                return;
+            }
+
+            Instance = existingManager;
+        }
+
+        Instance.ClearInventory();
+    }
+
     public void SetSelectedSlotIndex(int index, int slotCount)
     {
         if (slotCount <= 0)

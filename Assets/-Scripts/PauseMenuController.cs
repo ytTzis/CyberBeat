@@ -191,6 +191,7 @@ public class PauseMenuController : MonoBehaviour
     {
         Time.timeScale = 1f;
         PlayerHealthSystem.ResetPersistentHealth();
+        InventoryManager.ResetPersistentInventory();
         Scene activeScene = SceneManager.GetActiveScene();
         SceneManager.LoadScene(activeScene.buildIndex);
     }
@@ -199,6 +200,7 @@ public class PauseMenuController : MonoBehaviour
     {
         Time.timeScale = 1f;
         PlayerHealthSystem.ResetPersistentHealth();
+        InventoryManager.ResetPersistentInventory();
         SceneManager.LoadScene(TitleSceneName);
     }
 

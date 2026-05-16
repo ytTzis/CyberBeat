@@ -14,6 +14,7 @@ public class FirstSceneButton : MonoBehaviour
     public void StartGame()
     {
         PlayerHealthSystem.ResetPersistentHealth();
+        InventoryManager.ResetPersistentInventory();
         EnsureHeartRateMonitoringStarted();
         SceneManager.LoadScene(targetSceneName);
     }

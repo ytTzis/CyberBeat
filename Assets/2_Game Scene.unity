@@ -104853,7 +104853,7 @@ MonoBehaviour:
   visualizationController: {fileID: 1634031263}
   legacyBpmText: {fileID: 0}
   tmpBpmText: {fileID: 2097690546}
-  prefix: '<3 '
+  prefix: 
   suffix: ' bpm'
 --- !u!114 &2097690546
 MonoBehaviour:
