@@ -59,6 +59,21 @@ namespace UGG.Health
 
             SetAttacker(attacker);
 
+            if (IsCounterAttackActive())
+            {
+                if (!OnInvincibleState())
+                {
+                    ApplyDamage(damagar);
+
+                    if (currentHealth <= 0f)
+                    {
+                        Die();
+                    }
+                }
+
+                return;
+            }
+
             if (maxParryCount > 0 && !OnInvincibleState())
             {
                 //如果反击格挡次数等于2
@@ -120,9 +135,14 @@ namespace UGG.Health
             return false;
         }
 
+        private bool IsCounterAttackActive()
+        {
+            return HasValidAnimator() && _animator.CheckAnimationTag("CounterAttack");
+        }
+
         private bool IsWithinCounterAttackInvincibleWindow()
         {
-            if (!_animator.CheckAnimationTag("CounterAttack"))
+            if (!IsCounterAttackActive())
             {
                 return false;
             }

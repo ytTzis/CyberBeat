@@ -62,6 +62,21 @@ namespace UGG.Health
 
             SetAttacker(attacker);
 
+            if (IsCounterAttackActive())
+            {
+                if (!OnInvincibleState())
+                {
+                    ApplyDamage(damagar);
+
+                    if (currentHealth <= 0f)
+                    {
+                        Die();
+                    }
+                }
+
+                return;
+            }
+
             if (maxParryCount > 0 && !OnInvincibleState())
             {
                 if (counterattackParryCount == 2)
@@ -118,6 +133,17 @@ namespace UGG.Health
             if (IsWithinCounterAttackInvincibleWindow()) return true;
 
             return false;
+        }
+
+        private bool IsCounterAttackActive()
+        {
+            if (!HasValidAnimator())
+            {
+                return false;
+            }
+
+            AnimatorStateInfo currentStateInfo = _animator.GetCurrentAnimatorStateInfo(0);
+            return _animator.CheckAnimationTag("CounterAttack") || currentStateInfo.IsName("GS12");
         }
 
         private bool IsWithinCounterAttackInvincibleWindow()
