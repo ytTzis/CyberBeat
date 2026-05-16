@@ -190,6 +190,7 @@ public class PauseMenuController : MonoBehaviour
     public void RetryGame()
     {
         Time.timeScale = 1f;
+        PlayerHealthSystem.ResetPersistentHealth();
         Scene activeScene = SceneManager.GetActiveScene();
         SceneManager.LoadScene(activeScene.buildIndex);
     }
@@ -197,6 +198,7 @@ public class PauseMenuController : MonoBehaviour
     public void QuitGame()
     {
         Time.timeScale = 1f;
+        PlayerHealthSystem.ResetPersistentHealth();
         SceneManager.LoadScene(TitleSceneName);
     }
 

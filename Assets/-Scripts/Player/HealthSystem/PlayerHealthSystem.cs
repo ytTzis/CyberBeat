@@ -12,6 +12,8 @@ namespace UGG.Health
     {
         private const string DefaultDeathAnimation = "GhostSamurai_APose_Die01_Inplace";
         private const string DefaultDeathAnimationPath = "Assets/GameAssets/GreatSword_Animset/Animation/katana/APose/Die/Inplace/GhostSamurai_APose_Die01_Inplace.FBX";
+        private static bool persistentHealthInitialized;
+        private static float persistentCurrentHealth;
         private static readonly string[] UnparryableEnemySkillStateNames =
         {
             "Attack03_4",
@@ -65,7 +67,7 @@ namespace UGG.Health
             base.Awake();
             playerMovementController = GetComponent<UGG.Move.PlayerMovementController>();
             heartRateStateController = HeartRateStateController.Instance;
-            currentHealth = Mathf.Clamp(currentHealth, 0f, maxHealth);
+            currentHealth = ResolveInitialHealth();
             CreateRecoveringPulseRing();
             CreateHighStressPulseRing();
 
@@ -156,6 +158,13 @@ namespace UGG.Health
         public void RestoreFullHealth()
         {
             currentHealth = maxHealth;
+            SyncPersistentHealth();
+        }
+
+        public static void ResetPersistentHealth()
+        {
+            persistentHealthInitialized = false;
+            persistentCurrentHealth = 0f;
         }
 
         private void TryAutoBindHeartRateStateController()
@@ -476,6 +485,8 @@ namespace UGG.Health
             {
                 currentHealth = 0f;
             }
+
+            SyncPersistentHealth();
         }
 
         private void Heal(float amount)
@@ -486,6 +497,7 @@ namespace UGG.Health
             }
 
             currentHealth = Mathf.Clamp(currentHealth + amount, 0f, maxHealth);
+            SyncPersistentHealth();
         }
 
         private bool IsInRecoveringState()
@@ -498,6 +510,27 @@ namespace UGG.Health
         {
             return heartRateStateController != null &&
                    heartRateStateController.CurrentState == HeartRateStateController.HeartRateState.HighStress;
+        }
+
+        private float ResolveInitialHealth()
+        {
+            float defaultHealth = Mathf.Clamp(currentHealth, 0f, maxHealth);
+
+            if (!persistentHealthInitialized)
+            {
+                persistentCurrentHealth = defaultHealth;
+                persistentHealthInitialized = true;
+                return defaultHealth;
+            }
+
+            persistentCurrentHealth = Mathf.Clamp(persistentCurrentHealth, 0f, maxHealth);
+            return persistentCurrentHealth;
+        }
+
+        private void SyncPersistentHealth()
+        {
+            persistentCurrentHealth = Mathf.Clamp(currentHealth, 0f, maxHealth);
+            persistentHealthInitialized = true;
         }
 
         #endregion

@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UGG.Health;
 
 public class FirstSceneButton : MonoBehaviour
 {
@@ -12,6 +13,7 @@ public class FirstSceneButton : MonoBehaviour
 
     public void StartGame()
     {
+        PlayerHealthSystem.ResetPersistentHealth();
         EnsureHeartRateMonitoringStarted();
         SceneManager.LoadScene(targetSceneName);
     }
