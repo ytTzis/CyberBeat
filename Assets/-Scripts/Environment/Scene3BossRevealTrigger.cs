@@ -20,6 +20,7 @@ public class Scene3BossRevealTrigger : MonoBehaviour
     [SerializeField] private bool disableEnemyCombatUntilTriggered = true;
     [SerializeField] private bool triggerOnlyOnce = true;
     [SerializeField] private BossTurnDialogueController bossTurnDialogueController;
+    [SerializeField] private Scene3BossBgmController bossBackgroundMusicController;
 
     [Header("Reveal Focus Shot")]
     [SerializeField] private SceneIntroCameraTransition cameraTransition;
@@ -205,6 +206,11 @@ public class Scene3BossRevealTrigger : MonoBehaviour
             }
         }
 
+        if (bossBackgroundMusicController != null && enemyHealthSystem != null && !enemyHealthSystem.IsDead())
+        {
+            bossBackgroundMusicController.PlayMusic();
+        }
+
         if (cameraTransition != null)
         {
             while (cameraTransition.IsTransitioning)
@@ -346,6 +352,11 @@ public class Scene3BossRevealTrigger : MonoBehaviour
             {
                 bossTurnDialogueController = dialogueControllers[0];
             }
+        }
+
+        if (bossBackgroundMusicController == null)
+        {
+            bossBackgroundMusicController = Scene3BossBgmController.FindInScene();
         }
 
         if (enemy2Root == null)

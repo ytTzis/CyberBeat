@@ -126,6 +126,7 @@ public class Scene3BossDefeatFinishTransition : MonoBehaviour
     private IEnumerator TransitionRoutine()
     {
         DisablePlayerControls();
+        StopBossMusic();
         EnsureFadeCanvas();
 
         if (delayBeforeFade > 0f)
@@ -142,6 +143,17 @@ public class Scene3BossDefeatFinishTransition : MonoBehaviour
 
         Time.timeScale = 1f;
         SceneManager.LoadScene(FinishSceneName);
+    }
+
+    private void StopBossMusic()
+    {
+        Scene3BossBgmController backgroundMusicController =
+            Scene3BossBgmController.FindInScene();
+
+        if (backgroundMusicController != null)
+        {
+            backgroundMusicController.StopMusic();
+        }
     }
 
     private void DisablePlayerControls()
