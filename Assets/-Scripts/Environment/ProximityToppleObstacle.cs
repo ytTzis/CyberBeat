@@ -34,6 +34,7 @@ namespace UGG.Environment
         private readonly List<Transform> activeToppleTargets = new List<Transform>();
         private readonly List<Quaternion> targetLocalRotations = new List<Quaternion>();
         private readonly List<float> minimumWorldHeights = new List<float>();
+        private readonly List<GameObject> runtimeVisualClones = new List<GameObject>();
         private Coroutine toppleCoroutine;
 
         private void Reset()
@@ -77,6 +78,7 @@ namespace UGG.Environment
 
             CacheToppleTargets();
             DisableStaticFlagsForToppleTargets();
+            PrepareRuntimeVisualClones();
         }
 
         private void Start()
@@ -373,6 +375,141 @@ namespace UGG.Environment
                 Transform target = activeToppleTargets[i];
                 SetHierarchyStaticState(target, false);
             }
+        }
+
+        private void PrepareRuntimeVisualClones()
+        {
+            runtimeVisualClones.Clear();
+
+            for (int i = 0; i < activeToppleTargets.Count; i++)
+            {
+                Transform target = activeToppleTargets[i];
+                if (target == null || !HasStaticRendererInHierarchy(target))
+                {
+                    continue;
+                }
+
+                GameObject visualClone = new GameObject($"{target.name}_DynamicVisual");
+                visualClone.transform.SetParent(target, false);
+                visualClone.transform.localPosition = Vector3.zero;
+                visualClone.transform.localRotation = Quaternion.identity;
+                visualClone.transform.localScale = Vector3.one;
+
+                CopyVisualHierarchy(target, visualClone.transform);
+                SetHierarchyStaticState(visualClone.transform, false);
+                DisableOriginalRenderers(target, visualClone.transform);
+                runtimeVisualClones.Add(visualClone);
+            }
+        }
+
+        private static bool HasStaticRendererInHierarchy(Transform targetRoot)
+        {
+            if (targetRoot == null)
+            {
+                return false;
+            }
+
+            Renderer[] renderers = targetRoot.GetComponentsInChildren<Renderer>(true);
+            for (int i = 0; i < renderers.Length; i++)
+            {
+                Renderer renderer = renderers[i];
+                if (renderer != null && renderer.gameObject.isStatic)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static void DisableOriginalRenderers(Transform targetRoot, Transform visualCloneRoot)
+        {
+            Renderer[] renderers = targetRoot.GetComponentsInChildren<Renderer>(true);
+            for (int i = 0; i < renderers.Length; i++)
+            {
+                Renderer renderer = renderers[i];
+                if (renderer == null)
+                {
+                    continue;
+                }
+
+                if (visualCloneRoot != null && renderer.transform.IsChildOf(visualCloneRoot))
+                {
+                    continue;
+                }
+
+                renderer.enabled = false;
+            }
+        }
+
+        private static void CopyVisualHierarchy(Transform source, Transform destination)
+        {
+            if (source == null || destination == null)
+            {
+                return;
+            }
+
+            destination.gameObject.layer = source.gameObject.layer;
+            destination.gameObject.tag = source.gameObject.tag;
+            destination.gameObject.SetActive(source.gameObject.activeSelf);
+
+            MeshFilter sourceMeshFilter = source.GetComponent<MeshFilter>();
+            if (sourceMeshFilter != null)
+            {
+                MeshFilter cloneMeshFilter = destination.gameObject.AddComponent<MeshFilter>();
+                cloneMeshFilter.sharedMesh = sourceMeshFilter.sharedMesh;
+            }
+
+            MeshRenderer sourceMeshRenderer = source.GetComponent<MeshRenderer>();
+            if (sourceMeshRenderer != null)
+            {
+                MeshRenderer cloneMeshRenderer = destination.gameObject.AddComponent<MeshRenderer>();
+                CopyRendererSettings(sourceMeshRenderer, cloneMeshRenderer);
+            }
+
+            SkinnedMeshRenderer sourceSkinnedRenderer = source.GetComponent<SkinnedMeshRenderer>();
+            if (sourceSkinnedRenderer != null)
+            {
+                SkinnedMeshRenderer cloneSkinnedRenderer = destination.gameObject.AddComponent<SkinnedMeshRenderer>();
+                CopyRendererSettings(sourceSkinnedRenderer, cloneSkinnedRenderer);
+                cloneSkinnedRenderer.sharedMesh = sourceSkinnedRenderer.sharedMesh;
+                cloneSkinnedRenderer.localBounds = sourceSkinnedRenderer.localBounds;
+                cloneSkinnedRenderer.updateWhenOffscreen = sourceSkinnedRenderer.updateWhenOffscreen;
+            }
+
+            for (int i = 0; i < source.childCount; i++)
+            {
+                Transform sourceChild = source.GetChild(i);
+                GameObject destinationChildObject = new GameObject(sourceChild.name);
+                Transform destinationChild = destinationChildObject.transform;
+                destinationChild.SetParent(destination, false);
+                destinationChild.localPosition = sourceChild.localPosition;
+                destinationChild.localRotation = sourceChild.localRotation;
+                destinationChild.localScale = sourceChild.localScale;
+
+                CopyVisualHierarchy(sourceChild, destinationChild);
+            }
+        }
+
+        private static void CopyRendererSettings(Renderer source, Renderer destination)
+        {
+            if (source == null || destination == null)
+            {
+                return;
+            }
+
+            destination.sharedMaterials = source.sharedMaterials;
+            destination.shadowCastingMode = source.shadowCastingMode;
+            destination.receiveShadows = source.receiveShadows;
+            destination.lightProbeUsage = source.lightProbeUsage;
+            destination.reflectionProbeUsage = source.reflectionProbeUsage;
+            destination.motionVectorGenerationMode = source.motionVectorGenerationMode;
+            destination.allowOcclusionWhenDynamic = source.allowOcclusionWhenDynamic;
+            destination.renderingLayerMask = source.renderingLayerMask;
+            destination.rendererPriority = source.rendererPriority;
+            destination.sortingLayerID = source.sortingLayerID;
+            destination.sortingOrder = source.sortingOrder;
+            destination.enabled = source.enabled;
         }
 
         private static void SetHierarchyStaticState(Transform targetRoot, bool isStatic)

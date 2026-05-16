@@ -32,8 +32,8 @@ public class HeartRateVisualFeedback : MonoBehaviour
 
     [Header("Chromatic Aberration")]
     public float normalChromatic = 0f;
-    public float risingChromaticMin = 0.08f;
-    public float risingChromaticMax = 0.25f;
+    public float risingChromaticMin = 0.3f;
+    public float risingChromaticMax = 0.3f;
     public float highChromaticMin = 0.3f;
     public float highChromaticMax = 1.0f;
     public float recoveringChromatic = 0.02f;
@@ -66,6 +66,7 @@ public class HeartRateVisualFeedback : MonoBehaviour
     private void Awake()
     {
         TryAutoBindHeartRate();
+        TryAutoBindGlobalVolume();
     }
 
     private void Start()
@@ -97,6 +98,7 @@ public class HeartRateVisualFeedback : MonoBehaviour
     private void Update()
     {
         TryAutoBindHeartRate();
+        TryAutoBindGlobalVolume();
         if (heartRate == null || stateController == null)
             return;
 
@@ -112,6 +114,16 @@ public class HeartRateVisualFeedback : MonoBehaviour
         {
             heartRate = HeartRateSimulator.Instance;
         }
+    }
+
+    private void TryAutoBindGlobalVolume()
+    {
+        if (globalVolume != null)
+        {
+            return;
+        }
+
+        globalVolume = FindFirstObjectByType<Volume>();
     }
 
     private void InitializeVolumeProfile()
@@ -263,16 +275,14 @@ public class HeartRateVisualFeedback : MonoBehaviour
         {
             case HeartRateStateController.HeartRateState.RisingStress:
                 {
-                    float pulse = (Mathf.Sin(Time.time * risingChromaticPulseSpeed) + 1f) * 0.5f;
-                    targetCA = Mathf.Lerp(risingChromaticMin, risingChromaticMax, pulse);
+                    targetCA = risingChromaticMax;
                     targetVignette = risingVignetteIntensity;
                     break;
                 }
 
             case HeartRateStateController.HeartRateState.HighStress:
                 {
-                    float pulse = (Mathf.Sin(Time.time * highChromaticPulseSpeed) + 1f) * 0.5f;
-                    targetCA = Mathf.Lerp(highChromaticMin, highChromaticMax, pulse);
+                    targetCA = highChromaticMax;
                     targetVignette = highVignetteIntensity;
                     break;
                 }
