@@ -27,6 +27,7 @@ namespace UGG.Health
         [SerializeField, Header("受击锁定攻击者结束时间(0-1)")] [Range(0f, 1f)] private float hitLockReleaseNormalizedTime = 0.35f;
         [SerializeField, Header("Recovering 每秒回血"), Min(0f)] private float recoveringHealPerSecond = 2.5f;
         [SerializeField, Header("Recovering 受伤倍率"), Range(0f, 1f)] private float recoveringDamageMultiplier = 0.85f;
+        [SerializeField, Header("MonstourRed 受伤倍率"), Min(1f)] private float monstourRedDamageTakenMultiplier = 1.25f;
         [SerializeField, Header("Recovering 脚下脉冲圈")] private bool showRecoveringPulseRing = true;
         [SerializeField] private Color recoveringPulseRingColor = new Color(0.2f, 0.95f, 1f, 0.8f);
         [SerializeField, Min(0.1f)] private float recoveringPulseRingRadius = 0.9f;
@@ -57,6 +58,7 @@ namespace UGG.Health
         private LineRenderer highStressPulseRingRenderer;
         private Material highStressPulseRingMaterial;
         private float highStressPulseRingVisibility;
+        private float monstourRedDamageTakenUntilTime;
 
         public float MaxHealth => maxHealth;
         public float CurrentHealth => currentHealth;
@@ -474,6 +476,11 @@ namespace UGG.Health
                 return;
             }
 
+            if (IsMonstourRedDamageTakenActive())
+            {
+                damage *= monstourRedDamageTakenMultiplier;
+            }
+
             if (IsInRecoveringState())
             {
                 damage *= recoveringDamageMultiplier;
@@ -510,6 +517,21 @@ namespace UGG.Health
         {
             return heartRateStateController != null &&
                    heartRateStateController.CurrentState == HeartRateStateController.HeartRateState.HighStress;
+        }
+
+        private bool IsMonstourRedDamageTakenActive()
+        {
+            return Time.time < monstourRedDamageTakenUntilTime;
+        }
+
+        public void ApplyMonstourRedDamageTakenModifier(float duration)
+        {
+            if (duration <= 0f)
+            {
+                return;
+            }
+
+            monstourRedDamageTakenUntilTime = Mathf.Max(monstourRedDamageTakenUntilTime, Time.time + duration);
         }
 
         private float ResolveInitialHealth()

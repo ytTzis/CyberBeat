@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
+using UGG.Health;
 
 public class BagInventoryUI : MonoBehaviour
 {
@@ -27,6 +28,7 @@ public class BagInventoryUI : MonoBehaviour
     [SerializeField] private float pickupDebugHintRadius = 5f;
     [SerializeField, Header("MonstourBlue Use SFX")] private AudioClip monstourBlueUseClip;
     [SerializeField, Range(0f, 1f)] private float monstourBlueUseVolume = 0.9f;
+    [SerializeField, Header("MonstourRed Effect")] private float monstourRedDamageTakenDuration = 10f;
 
     private Image[] slotImages;
     private RectTransform[] slotRects;
@@ -371,6 +373,12 @@ public class BagInventoryUI : MonoBehaviour
                     HeartRateStateController.Instance.ForceStateForDuration(
                         HeartRateStateController.HeartRateState.HighStress,
                         10f);
+                }
+
+                PlayerHealthSystem playerHealthSystem = FindFirstObjectByType<PlayerHealthSystem>();
+                if (playerHealthSystem != null)
+                {
+                    playerHealthSystem.ApplyMonstourRedDamageTakenModifier(monstourRedDamageTakenDuration);
                 }
                 break;
             case "MonstourBlue":

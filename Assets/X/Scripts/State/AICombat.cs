@@ -58,7 +58,10 @@ public class AICombat : StateActionSO
         //如果动画处于Motion状态
         if (_animator.CheckAnimationTag("Motion"))
         {
-            if (_combatSystem.GetCurrentTargetDistance() < 2f + 0.1f)
+            float retreatDistance = _combatSystem.GetCloseRetreatDistance();
+            float fallbackAttackDistance = _combatSystem.GetFallbackCloseRangeAttackDistance();
+
+            if (_combatSystem.GetCurrentTargetDistance() < retreatDistance)
             {
                 _movement.CharacterMoveInterface(-_combatSystem.GetDirectionForTarget(), 1.4f, true);
 
@@ -67,9 +70,9 @@ public class AICombat : StateActionSO
 
                 randomHorizontal = GetRandomHorizontal();
 
-                if (_combatSystem.GetCurrentTargetDistance() < 1.5 + 0.05f)
+                if (_combatSystem.GetCurrentTargetDistance() < fallbackAttackDistance)
                 {
-                    if (!_animator.CheckAnimationTag("Hit") || !_animator.CheckAnimationTag("Defen"))
+                    if (!_animator.CheckAnimationTag("Hit") && !_animator.CheckAnimationTag("Defen"))
                     {
                         _animator.Play("Attack_0", 0, 0f);
 
@@ -77,7 +80,7 @@ public class AICombat : StateActionSO
                     }
                 }
             }
-            else if (_combatSystem.GetCurrentTargetDistance() > 2f + 0.1f && _combatSystem.GetCurrentTargetDistance() < 6.1 + 0.5f)
+            else if (_combatSystem.GetCurrentTargetDistance() > retreatDistance && _combatSystem.GetCurrentTargetDistance() < 6.1 + 0.5f)
             {
                 if (HorizontalDirectionHasObject(randomHorizontal))
                 {

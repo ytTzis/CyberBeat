@@ -620,6 +620,10 @@ public class AICombatSystem : CharacterCombatSystemBase
 
     public Vector3 GetDirectionForTarget() => currentTarget == null ? transform.root.forward : (currentTarget.position - transform.root.position).normalized;
 
+    public float GetCloseRetreatDistance() => attackDetectionRang + 1.1f;
+
+    public float GetFallbackCloseRangeAttackDistance() => attackDetectionRang + 0.15f;
+
     public float GetPressureApproachSpeed() => pressureApproachSpeed;
 
     public void SetCombatLogicEnabled(bool isEnabled)

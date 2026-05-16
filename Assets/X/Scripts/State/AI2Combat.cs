@@ -64,7 +64,10 @@ public class AI2Combat : AI2StateActionSO
 
         if (_animator.CheckAnimationTag("Motion"))
         {
-            if (_combatSystem.GetCurrentTargetDistance() < 2.1f)
+            float retreatDistance = _combatSystem.GetCloseRetreatDistance();
+            float fallbackAttackDistance = _combatSystem.GetFallbackCloseRangeAttackDistance();
+
+            if (_combatSystem.GetCurrentTargetDistance() < retreatDistance)
             {
                 _movement.CharacterMoveInterface(-_combatSystem.GetDirectionForTarget(), 1.4f, true);
                 _animator.SetFloat(verticalID, -1f, 0.25f, Time.deltaTime);
@@ -72,9 +75,9 @@ public class AI2Combat : AI2StateActionSO
 
                 randomHorizontal = GetRandomHorizontal();
 
-                if (_combatSystem.GetCurrentTargetDistance() < 1.55f)
+                if (_combatSystem.GetCurrentTargetDistance() < fallbackAttackDistance)
                 {
-                    if (!_animator.CheckAnimationTag("Hit") || !_animator.CheckAnimationTag("Defen"))
+                    if (!_animator.CheckAnimationTag("Hit") && !_animator.CheckAnimationTag("Defen"))
                     {
                         string attackName = _combatSystem.GetFallbackCloseRangeAttackAnimation();
                         if (!string.IsNullOrEmpty(attackName))
@@ -86,7 +89,7 @@ public class AI2Combat : AI2StateActionSO
                     }
                 }
             }
-            else if (_combatSystem.GetCurrentTargetDistance() > 2.1f && _combatSystem.GetCurrentTargetDistance() < 6.6f)
+            else if (_combatSystem.GetCurrentTargetDistance() > retreatDistance && _combatSystem.GetCurrentTargetDistance() < 6.6f)
             {
                 if (HorizontalDirectionHasObject(randomHorizontal))
                 {
