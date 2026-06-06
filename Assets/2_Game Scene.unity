@@ -22304,8 +22304,55 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 531632263391497672, guid: 74999dc6a8a667c42a5c74f56c2b2731, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 448539991}
   m_SourcePrefab: {fileID: 100100000, guid: 74999dc6a8a667c42a5c74f56c2b2731, type: 3}
+--- !u!1 &448539990 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 531632263391497672, guid: 74999dc6a8a667c42a5c74f56c2b2731, type: 3}
+  m_PrefabInstance: {fileID: 448539989}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &448539991
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 448539990}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: faa92dc2e69f18c4ca7e48136969a866, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  playerTag: Player
+  nearBoostRadius: 4
+  enableObjectHighlight: 0
+  colorMode: 1
+  customHighlightColor: {r: 1, g: 0.92, b: 0.28, a: 1}
+  minEmissionIntensity: 5.6
+  maxEmissionIntensity: 8.8
+  nearEmissionBonus: 4.2
+  pulseSpeed: 1.65
+  tintBaseColorSlightly: 1
+  baseColorTintStrength: 0.1
+  enableFloatMotion: 1
+  floatAmplitude: 0.03
+  floatSpeed: 1.8
+  enableRotation: 1
+  rotationAxis: {x: 0, y: 1, z: 0}
+  rotationSpeed: 35
+  enableIndicator: 1
+  indicatorHeight: 0.6
+  indicatorWidth: 0.22
+  indicatorLength: 0.22
+  indicatorDepth: 0.3
+  indicatorFloatAmplitude: 0.05
+  indicatorFloatSpeed: 2.1
+  indicatorRotationSpeed: 140
+  indicatorAlpha: 1
+  showDebugGizmos: 0
 --- !u!1001 &449449617
 PrefabInstance:
   m_ObjectHideFlags: 0
