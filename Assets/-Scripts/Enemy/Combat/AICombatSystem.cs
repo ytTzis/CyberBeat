@@ -6,6 +6,10 @@ using UGG.Health;
 
 public class AICombatSystem : CharacterCombatSystemBase
 {
+    private const string SkillKnockdownStateName = "Skill";
+    private const string CounterAttackTagName = "CounterAttack";
+    private const string UnparryableSkillKnockdownHitName = "Unparryable_Hit_D_Up";
+
     [SerializeField, Header("Detection Center")] private Transform detectionCenter;
     [SerializeField, Header("Detection Range")] private float detectionRang;
     [SerializeField, Range(-1f, 1f), Header("Vision Forward Threshold")] private float visionForwardThreshold = 0.15f;
@@ -47,6 +51,7 @@ public class AICombatSystem : CharacterCombatSystemBase
     private int nextSkillIndex;
     private readonly List<int> recentSkillIds = new List<int>();
     private float lastSeenTargetTime = float.MinValue;
+    private float skillKnockdownHitWindowUntilTime;
     private bool combatLogicEnabled = true;
 
     private void Start()
@@ -161,6 +166,28 @@ public class AICombatSystem : CharacterCombatSystemBase
     public void TriggerAnimationAttackEvent(string hitName)
     {
         OnAnimationAttackEvent(hitName);
+    }
+
+    protected override void OnAnimationAttackEvent(string hitName)
+    {
+        bool isSkillKnockdownHit = IsCurrentSkillKnockdownAttack() ||
+                                   hitName == UnparryableSkillKnockdownHitName;
+        if (isSkillKnockdownHit)
+        {
+            skillKnockdownHitWindowUntilTime = Time.time + Mathf.Max(attackHitWindowDuration, 0.02f) + 0.02f;
+        }
+
+        base.OnAnimationAttackEvent(isSkillKnockdownHit
+            ? UnparryableSkillKnockdownHitName
+            : hitName);
+    }
+
+    protected override bool CanContinueAttackHitWindow()
+    {
+        return base.CanContinueAttackHitWindow() ||
+               _animator.CheckAnimationTag(CounterAttackTagName) ||
+               IsCurrentSkillKnockdownAttack() ||
+               Time.time <= skillKnockdownHitWindowUntilTime;
     }
 
     public void TriggerWhirlwindAttackEvent(string hitName)
@@ -304,6 +331,23 @@ public class AICombatSystem : CharacterCombatSystemBase
                 }
             }
         }
+    }
+
+    private bool IsCurrentSkillKnockdownAttack()
+    {
+        if (!EnsureAnimatorReference())
+        {
+            return false;
+        }
+
+        AnimatorStateInfo currentStateInfo = _animator.GetCurrentAnimatorStateInfo(0);
+        if (currentStateInfo.IsName(SkillKnockdownStateName))
+        {
+            return true;
+        }
+
+        return _animator.IsInTransition(0) &&
+               _animator.GetNextAnimatorStateInfo(0).IsName(SkillKnockdownStateName);
     }
 
     #region Target Detection
