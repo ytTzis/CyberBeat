@@ -12,6 +12,8 @@ namespace UGG.Health
         private const string DefaultDeathAnimation = "GhostSamurai_Bow_Die01_Inplace";
         private const string DefaultDeathAnimationPath = "Assets/GameAssets/GreatSword_Animset/Animation/katana/APose/Die/Inplace/GhostSamurai_APose_Die05_Inplace.FBX";
         private const string NonInterruptibleJumpAttackStateName = "JumpAttack04_1";
+        private const string ExecuteHitStateName = "ExecuteHit";
+        private const string ExecuteHitRecoveryStateName = "BaseMotion";
 
         [Header("AI HP")]
         [SerializeField] private float maxHealth = 100f;
@@ -22,11 +24,16 @@ namespace UGG.Health
         [SerializeField] private float counterattackDelay = 0.5f;
         [SerializeField, Header("Counter Attack"), Range(0f, 1f)] private float counterAttackInvincibleNormalizedTime = 0.2f;
         [SerializeField, Header("跳劈霸体结束时间(0-1)"), Range(0f, 1f)] private float jumpAttackArmorEndNormalizedTime = 0.36f;
+        [SerializeField, Header("处决真正倒地时间(0-1)"), Range(0f, 1f)] private float executeHitDownedNormalizedTime = 0.72f;
+        [SerializeField, Header("处决倒地后起身延迟"), Min(0f)] private float executeHitGetUpDelay = 1f;
+        [SerializeField, Header("处决状态进入等待时间"), Min(0f)] private float executeHitStateEnterTimeout = 0.25f;
 
         [SerializeField] private int maxHitCount;
         [SerializeField] private int hitCount;
 
         private Coroutine counterattackCoroutine;
+        private Coroutine executeHitRecoveryCoroutine;
+        private AICombatSystem aiCombatSystem;
 
         public float MaxHealth => maxHealth;
         public float CurrentHealth => currentHealth;
@@ -63,6 +70,30 @@ namespace UGG.Health
             }
 
             SetAttacker(attacker);
+
+            if (IsExecuteHitActive())
+            {
+                return;
+            }
+
+            if (hitAnimationName == ExecuteHitStateName)
+            {
+                SetExecuteHitActionLock(true);
+                ApplyDamage(damagar);
+
+                if (currentHealth <= 0f)
+                {
+                    RestoreAnimatorSpeedForExecuteHit();
+                    Die();
+                    return;
+                }
+
+                _animator.Play(ExecuteHitStateName, 0, 0f);
+                TryStartExecuteHitRecovery();
+                GameAssets.Instance.PlaySoundEffect(_audioSource, SoundAssetsType.hit);
+                hitCount++;
+                return;
+            }
 
             if (IsCounterAttackActive())
             {
@@ -133,6 +164,11 @@ namespace UGG.Health
                     }
 
                     _animator.Play(hitAnimationName, 0, 0f);
+                    if (hitAnimationName == ExecuteHitStateName)
+                    {
+                        SetExecuteHitActionLock(true);
+                        TryStartExecuteHitRecovery();
+                    }
                     GameAssets.Instance.PlaySoundEffect(_audioSource, SoundAssetsType.hit);
                     hitCount++;
                 }
@@ -160,6 +196,119 @@ namespace UGG.Health
 
             AnimatorStateInfo currentStateInfo = _animator.GetCurrentAnimatorStateInfo(0);
             return _animator.CheckAnimationTag("CounterAttack") || currentStateInfo.IsName("GS12");
+        }
+
+        private bool IsExecuteHitActive()
+        {
+            if (!HasValidAnimator())
+            {
+                return false;
+            }
+
+            AnimatorStateInfo currentStateInfo = _animator.GetCurrentAnimatorStateInfo(0);
+            if (currentStateInfo.IsName(ExecuteHitStateName))
+            {
+                return true;
+            }
+
+            return _animator.IsInTransition(0) &&
+                   _animator.GetNextAnimatorStateInfo(0).IsName(ExecuteHitStateName);
+        }
+
+        private void TryStartExecuteHitRecovery()
+        {
+            if (executeHitRecoveryCoroutine != null)
+            {
+                StopCoroutine(executeHitRecoveryCoroutine);
+            }
+
+            executeHitRecoveryCoroutine = StartCoroutine(RecoverFromExecuteHit());
+        }
+
+        private IEnumerator RecoverFromExecuteHit()
+        {
+            SetExecuteHitActionLock(true);
+            float originalAnimatorSpeed = HasValidAnimator() ? _animator.speed : 1f;
+            float enterElapsed = 0f;
+
+            while (!IsDead() && HasValidAnimator() && !IsExecuteHitActive() && enterElapsed < executeHitStateEnterTimeout)
+            {
+                enterElapsed += Time.deltaTime;
+                yield return null;
+            }
+
+            while (!IsDead() && HasValidAnimator() && IsExecuteHitActive())
+            {
+                AnimatorStateInfo currentStateInfo = _animator.GetCurrentAnimatorStateInfo(0);
+                if (currentStateInfo.IsName(ExecuteHitStateName) &&
+                    currentStateInfo.normalizedTime >= executeHitDownedNormalizedTime)
+                {
+                    break;
+                }
+
+                yield return null;
+            }
+
+            if (!IsDead() && HasValidAnimator() && IsExecuteHitActive())
+            {
+                _animator.speed = 0f;
+            }
+
+            if (executeHitGetUpDelay > 0f)
+            {
+                yield return new WaitForSeconds(executeHitGetUpDelay);
+            }
+
+            if (HasValidAnimator())
+            {
+                _animator.speed = originalAnimatorSpeed;
+            }
+
+            if (!IsDead() && HasValidAnimator())
+            {
+                _animator.CrossFadeInFixedTime(ExecuteHitRecoveryStateName, 0.1f, 0, 0f);
+            }
+
+            SetExecuteHitActionLock(false);
+            executeHitRecoveryCoroutine = null;
+        }
+
+        private void SetExecuteHitActionLock(bool isLocked)
+        {
+            AICombatSystem combatSystem = GetAICombatSystem();
+            if (combatSystem != null)
+            {
+                combatSystem.SetCombatLogicEnabled(!isLocked);
+            }
+        }
+
+        private AICombatSystem GetAICombatSystem()
+        {
+            if (aiCombatSystem != null)
+            {
+                return aiCombatSystem;
+            }
+
+            aiCombatSystem = GetComponent<AICombatSystem>();
+            if (aiCombatSystem == null)
+            {
+                aiCombatSystem = GetComponentInChildren<AICombatSystem>(true);
+            }
+
+            if (aiCombatSystem == null)
+            {
+                aiCombatSystem = GetComponentInParent<AICombatSystem>();
+            }
+
+            return aiCombatSystem;
+        }
+
+        private void RestoreAnimatorSpeedForExecuteHit()
+        {
+            if (HasValidAnimator() && Mathf.Approximately(_animator.speed, 0f))
+            {
+                _animator.speed = 1f;
+            }
         }
 
         private bool IsNonInterruptibleJumpAttackActive()
@@ -346,6 +495,12 @@ namespace UGG.Health
             {
                 StopCoroutine(counterattackCoroutine);
                 counterattackCoroutine = null;
+            }
+
+            if (executeHitRecoveryCoroutine != null)
+            {
+                StopCoroutine(executeHitRecoveryCoroutine);
+                executeHitRecoveryCoroutine = null;
             }
         }
     }

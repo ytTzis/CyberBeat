@@ -48,6 +48,8 @@ public class AICombatSystem : CharacterCombatSystemBase
     [SerializeField, Min(1f)] private float longRangePreferredSkillWeightMultiplier = 3f;
     [SerializeField, Min(0f), Header("Close Range Threshold")] private float closeRangeThreshold = 2.2f;
     [SerializeField, Min(1f)] private float closeRangePreferredSkillWeightMultiplier = 1.35f;
+    [SerializeField, Header("Normal Attack Preference")] private string normalAttackSkillName = "Attack_0";
+    [SerializeField, Min(1f)] private float normalAttackWeightMultiplier = 5f;
     private int nextSkillIndex;
     private readonly List<int> recentSkillIds = new List<int>();
     private float lastSeenTargetTime = float.MinValue;
@@ -557,6 +559,10 @@ public class AICombatSystem : CharacterCombatSystemBase
             }
 
             float weight = 1f;
+            if (!string.IsNullOrEmpty(normalAttackSkillName) && skill.GetSkillName() == normalAttackSkillName)
+            {
+                weight *= normalAttackWeightMultiplier;
+            }
 
             if (skill.GetSkillID() == lastSkillId)
             {

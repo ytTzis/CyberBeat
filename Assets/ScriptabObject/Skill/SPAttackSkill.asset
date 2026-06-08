@@ -10,10 +10,10 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 0038cf646b7c0954e88599540970e5c9, type: 3}
-  m_Name: NormalSkill
+  m_Name: SPAttackSkill
   m_EditorClassIdentifier: 
-  skillName: Attack_0
-  skillID: 0
-  skillCDTime: 1.2
-  skillUseDistance: 2.1
+  skillName: SPAttack
+  skillID: 3
+  skillCDTime: 8
+  skillUseDistance: 2.8
   skillIsDone: 0
