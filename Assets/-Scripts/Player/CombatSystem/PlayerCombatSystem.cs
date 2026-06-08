@@ -35,9 +35,19 @@ namespace UGG.Combat
         [SerializeField, Header("High Stress 伤害倍率"), Min(1f)]
         private float highStressDamageMultiplier = 1.3f;
         [SerializeField, Header("攻击提前恢复输入时间(0-1)")] [Range(0f, 1f)]
-        private float attackRecoverNormalizedTime = 0.6f;
+        private float attackRecoverNormalizedTime = 0.3f;
+        [SerializeField, Header("攻击可取消到格挡时间(0-1)")] [Range(0f, 1f)]
+        private float attackParryCancelNormalizedTime = 0.3f;
+        [SerializeField, Header("攻击取消格挡状态名")]
+        private string attackCancelParryStateName = "Enter_Parry";
+        [SerializeField, Header("攻击取消格挡过渡时间")] [Min(0f)]
+        private float attackCancelParryTransitionDuration = 0.05f;
+        [SerializeField, Header("攻击可取消到闪避时间(0-1)")] [Range(0f, 1f)]
+        private float attackDodgeCancelNormalizedTime = 0.25f;
+        [SerializeField, Header("格挡可取消到闪避时间(0-1)")] [Range(0f, 1f)]
+        private float parryDodgeCancelNormalizedTime = 0.08f;
         [SerializeField, Header("格挡后提前恢复闪避时间(0-1)")] [Range(0f, 1f)]
-        private float parryDodgeRecoverNormalizedTime = 0.18f;
+        private float parryDodgeRecoverNormalizedTime = 0.1f;
         [SerializeField, Header("攻击锁敌结束时间(0-1)")] [Range(0f, 1f)]
         private float attackLockReleaseNormalizedTime = 0.55f;
         [SerializeField, Header("最后一刀提前恢复移动时间(0-1)")] [Range(0f, 1f)]
@@ -142,9 +152,18 @@ namespace UGG.Combat
                 return;
             }
 
-            if (CanInputParry())
+            bool wantsParry = _characterInputSystem.playerDefen;
+            bool canInputParry = CanInputParry();
+
+            if (wantsParry && canInputParry && CanCancelAttackIntoParry() && !_animator.IsInTransition(0))
             {
-                _animator.SetBool(defenID, _characterInputSystem.playerDefen);
+                CancelAttackIntoParry();
+                SetAllowAttackInput(false);
+            }
+
+            if (canInputParry)
+            {
+                _animator.SetBool(defenID, wantsParry);
             }
             else
             {
@@ -157,9 +176,36 @@ namespace UGG.Combat
             if (_animator.CheckAnimationTag("Motion")) return true;
             if (_animator.CheckAnimationTag("Parry")) return true;
             if (_animator.CheckCurrentTagAnimationTimeIsExceed("Hit", 0.07f)) return true;
+            if (CanCancelAttackIntoParry()) return true;
 
             return false;
         } 
+
+        private bool CanCancelAttackIntoParry()
+        {
+            if (_animator.CheckAnimationTag("Attack"))
+            {
+                return _animator.GetCurrentAnimatorStateInfo(0).normalizedTime >= attackParryCancelNormalizedTime;
+            }
+
+            if (_animator.CheckAnimationTag("GSAttack"))
+            {
+                return _animator.GetCurrentAnimatorStateInfo(0).normalizedTime >= attackParryCancelNormalizedTime;
+            }
+
+            return false;
+        }
+
+        private void CancelAttackIntoParry()
+        {
+            _animator.ResetTrigger(lAtkID);
+            _animator.ResetTrigger(rAtkID);
+
+            if (!string.IsNullOrEmpty(attackCancelParryStateName))
+            {
+                _animator.CrossFadeInFixedTime(attackCancelParryStateName, attackCancelParryTransitionDuration, 0, 0f);
+            }
+        }
 
         private void OnAnimatorActionAutoLockON()
         {
@@ -210,10 +256,31 @@ namespace UGG.Combat
             return canRecoverFromNormalAttack || canRecoverFromGreatSwordAttack;
         }
 
+        public bool CanCancelAttackIntoDodge()
+        {
+            if (_animator.CheckAnimationTag("Attack"))
+            {
+                return _animator.GetCurrentAnimatorStateInfo(0).normalizedTime >= attackDodgeCancelNormalizedTime;
+            }
+
+            if (_animator.CheckAnimationTag("GSAttack"))
+            {
+                return _animator.GetCurrentAnimatorStateInfo(0).normalizedTime >= attackDodgeCancelNormalizedTime;
+            }
+
+            return false;
+        }
+
         public bool CanRecoverFromParryForDodge()
         {
             return _animator.CheckAnimationTag("Parry") &&
                    _animator.GetCurrentAnimatorStateInfo(0).normalizedTime >= parryDodgeRecoverNormalizedTime;
+        }
+
+        public bool CanCancelParryIntoDodge()
+        {
+            return _animator.CheckAnimationTag("Parry") &&
+                   _animator.GetCurrentAnimatorStateInfo(0).normalizedTime >= parryDodgeCancelNormalizedTime;
         }
 
         public bool CanRecoverMovementFromFinalAttack()

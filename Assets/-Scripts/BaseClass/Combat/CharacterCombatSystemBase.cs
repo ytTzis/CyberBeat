@@ -81,6 +81,11 @@ namespace UGG.Combat
 
             for (int checkIndex = 0; checkIndex < checksRemaining; checkIndex++)
             {
+                if (!CanContinueAttackHitWindow())
+                {
+                    break;
+                }
+
                 TryApplyAttackHits(hitName, hitTargets);
 
                 if (checkIndex < checksRemaining - 1 && checkInterval > 0f)
@@ -90,6 +95,13 @@ namespace UGG.Combat
             }
 
             attackHitWindowCoroutine = null;
+        }
+
+        protected virtual bool CanContinueAttackHitWindow()
+        {
+            return _animator.CheckAnimationTag("Attack") ||
+                   _animator.CheckAnimationTag("LAttack") ||
+                   _animator.CheckAnimationTag("GSAttack");
         }
 
         private void TryApplyAttackHits(string hitName, HashSet<IDamagar> hitTargets)

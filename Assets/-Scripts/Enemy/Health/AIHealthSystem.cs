@@ -23,6 +23,7 @@ namespace UGG.Health
         [SerializeField] private int maxHitCount;
         [SerializeField] private int hitCount;//如果受伤次数超过最大受伤次数 触发脱身技能
         [SerializeField, Header("Counter Attack"), Range(0f, 1f)] private float counterAttackInvincibleNormalizedTime = 0.2f;
+        [SerializeField, Header("跳劈霸体结束时间(0-1)"), Range(0f, 1f)] private float jumpAttackArmorEndNormalizedTime = 0.36f;
 
         public float MaxHealth => maxHealth;
         public float CurrentHealth => currentHealth;
@@ -165,11 +166,17 @@ namespace UGG.Health
             AnimatorStateInfo currentStateInfo = _animator.GetCurrentAnimatorStateInfo(0);
             if (currentStateInfo.IsName(NonInterruptibleJumpAttackStateName))
             {
-                return true;
+                return IsJumpAttackInArmorWindow(currentStateInfo);
             }
 
             return _animator.IsInTransition(0) &&
-                   _animator.GetNextAnimatorStateInfo(0).IsName(NonInterruptibleJumpAttackStateName);
+                   IsJumpAttackInArmorWindow(_animator.GetNextAnimatorStateInfo(0));
+        }
+
+        private bool IsJumpAttackInArmorWindow(AnimatorStateInfo stateInfo)
+        {
+            return stateInfo.IsName(NonInterruptibleJumpAttackStateName) &&
+                   stateInfo.normalizedTime < jumpAttackArmorEndNormalizedTime;
         }
 
         private bool IsWithinCounterAttackInvincibleWindow()

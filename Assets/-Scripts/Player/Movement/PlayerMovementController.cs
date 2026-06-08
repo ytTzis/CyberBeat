@@ -246,10 +246,12 @@ namespace UGG.Move
                                            characterAnimator.CheckCurrentTagAnimationTimeIsExceed("Hit", hitDodgeRecoverNormalizedTime);
             bool canDodgeFromRecoveredAttack = isOnGround &&
                                               _playerCombatSystem != null &&
-                                              _playerCombatSystem.CanRecoverFromAttack();
+                                              (_playerCombatSystem.CanCancelAttackIntoDodge() ||
+                                               _playerCombatSystem.CanRecoverFromAttack());
             bool canDodgeFromRecoveredParry = isOnGround &&
                                              _playerCombatSystem != null &&
-                                             _playerCombatSystem.CanRecoverFromParryForDodge();
+                                             (_playerCombatSystem.CanCancelParryIntoDodge() ||
+                                              _playerCombatSystem.CanRecoverFromParryForDodge());
             bool canDodgeFromFinalAttack = isOnGround &&
                                            _playerCombatSystem != null &&
                                            _playerCombatSystem.CanRecoverMovementFromFinalAttack();
