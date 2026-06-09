@@ -18,6 +18,7 @@ public class FirstSceneButton : MonoBehaviour
         PlayerHealthSystem.ResetPersistentHealth();
         InventoryManager.ResetPersistentInventory();
         EnsureHeartRateMonitoringStarted();
+        ResetHeartRateItemEffects();
         SceneManager.LoadScene(targetSceneName);
     }
 
@@ -51,6 +52,19 @@ public class FirstSceneButton : MonoBehaviour
         {
             GameObject simulatorObject = new GameObject("HeartRateSimulator");
             simulatorObject.AddComponent<HeartRateSimulator>();
+        }
+    }
+
+    private static void ResetHeartRateItemEffects()
+    {
+        if (HeartRateStateController.Instance != null)
+        {
+            HeartRateStateController.Instance.ResetItemStateEffects();
+        }
+
+        if (HeartRateSimulator.Instance != null)
+        {
+            HeartRateSimulator.Instance.ResetItemHeartRateEffects();
         }
     }
 }

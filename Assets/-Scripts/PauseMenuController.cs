@@ -192,6 +192,7 @@ public class PauseMenuController : MonoBehaviour
         Time.timeScale = 1f;
         PlayerHealthSystem.ResetPersistentHealth();
         InventoryManager.ResetPersistentInventory();
+        ResetHeartRateItemEffects();
         Scene activeScene = SceneManager.GetActiveScene();
         SceneManager.LoadScene(activeScene.buildIndex);
     }
@@ -201,7 +202,21 @@ public class PauseMenuController : MonoBehaviour
         Time.timeScale = 1f;
         PlayerHealthSystem.ResetPersistentHealth();
         InventoryManager.ResetPersistentInventory();
+        ResetHeartRateItemEffects();
         SceneManager.LoadScene(TitleSceneName);
+    }
+
+    private static void ResetHeartRateItemEffects()
+    {
+        if (HeartRateStateController.Instance != null)
+        {
+            HeartRateStateController.Instance.ResetItemStateEffects();
+        }
+
+        if (HeartRateSimulator.Instance != null)
+        {
+            HeartRateSimulator.Instance.ResetItemHeartRateEffects();
+        }
     }
 
     private void ReleaseCursorControl()

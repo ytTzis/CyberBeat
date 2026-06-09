@@ -286,6 +286,16 @@ public class HeartRateStateController : MonoBehaviour
         OnReturnToNormal?.Invoke();
     }
 
+    public void ResetItemStateEffects()
+    {
+        ClearForcedStateOverride();
+        hasBeenStressed = false;
+        ResetTransitionTimers();
+        Trend = 0f;
+        ForceSetState(HeartRateState.Normal);
+        UpdateStateUI();
+    }
+
     public float GetRecommendedHighStressHeartRate(float extraBpm = 2f)
     {
         if (heartRate == null)

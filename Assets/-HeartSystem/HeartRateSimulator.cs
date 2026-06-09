@@ -142,6 +142,11 @@ public class HeartRateSimulator : MonoBehaviour
         RestoreRealtimeHeartRateImmediately();
     }
 
+    public void ResetItemHeartRateEffects()
+    {
+        ClearForcedHeartRateOverride();
+    }
+
     public bool HasTemporaryHeartRateOverride()
     {
         return hasTemporaryHeartRateOverride;
