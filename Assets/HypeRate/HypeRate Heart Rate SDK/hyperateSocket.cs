@@ -12,7 +12,7 @@ public class hyperateSocket : MonoBehaviour
     public const string WebsocketTokenPlayerPrefsKey = "Hyperate.WebsocketToken";
     public const string HyperateIdPlayerPrefsKey = "Hyperate.HyperateId";
     public const string DefaultWebsocketToken = "WqUFS31Br1CochGoJQLtAahFBkMmvVfAXKUPJXlF";
-    public const string DefaultHyperateId = "1H8Q6F6";
+    public const string DefaultHyperateId = "OY1QCBG";
 
 	// Put your websocket Token ID here
     public string websocketToken = DefaultWebsocketToken; 
