@@ -324,6 +324,11 @@ public class BagInventoryUI : MonoBehaviour
 
     private void HandleUseSelectedItem()
     {
+        if (IsDialogueInputBlocked())
+        {
+            return;
+        }
+
         if (!Input.GetKeyDown(KeyCode.E))
         {
             return;
@@ -337,6 +342,15 @@ public class BagInventoryUI : MonoBehaviour
         string itemId = collectedItemIds[selectedSlotIndex];
         UseItemEffect(itemId);
         RemoveItemAt(selectedSlotIndex);
+    }
+
+    private static bool IsDialogueInputBlocked()
+    {
+        return FirstPickupDialogueController.IsBlockingPauseMenu ||
+               Area2DialogueController.IsBlockingPauseMenu ||
+               Scene2IntroDialogueController.IsBlockingPauseMenu ||
+               Scene3IntroDialogueController.IsBlockingPauseMenu ||
+               BossTurnDialogueController.IsBlockingPauseMenu;
     }
 
     private void RemoveItemAt(int index)
