@@ -80220,6 +80220,14 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: -3060988999548699325, guid: 0504336c24266b141a524cbebec8e2f2, type: 3}
+      propertyPath: skill1FirstHitDamage
+      value: 20
+      objectReference: {fileID: 0}
+    - target: {fileID: -3060988999548699325, guid: 0504336c24266b141a524cbebec8e2f2, type: 3}
+      propertyPath: skill1SecondHitDamage
+      value: 25
+      objectReference: {fileID: 0}
     - target: {fileID: 545281451, guid: 0504336c24266b141a524cbebec8e2f2, type: 3}
       propertyPath: m_Layer
       value: 0
@@ -80235,6 +80243,10 @@ PrefabInstance:
     - target: {fileID: 912340940, guid: 0504336c24266b141a524cbebec8e2f2, type: 3}
       propertyPath: m_LocalPosition.z
       value: 1.2
+      objectReference: {fileID: 0}
+    - target: {fileID: 1141894075, guid: 0504336c24266b141a524cbebec8e2f2, type: 3}
+      propertyPath: recoveringHealPerSecond
+      value: 3
       objectReference: {fileID: 0}
     - target: {fileID: 1155056055, guid: 0504336c24266b141a524cbebec8e2f2, type: 3}
       propertyPath: m_Layer

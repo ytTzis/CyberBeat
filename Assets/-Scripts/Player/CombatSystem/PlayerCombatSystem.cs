@@ -34,6 +34,8 @@ namespace UGG.Combat
         private float attackMoveMult;
         [SerializeField, Header("High Stress 伤害倍率"), Min(1f)]
         private float highStressDamageMultiplier = 1.3f;
+        [SerializeField, Header("处决伤害"), Min(0f)]
+        private float executeAttackDamage = 30f;
         [SerializeField, Header("攻击提前恢复输入时间(0-1)")] [Range(0f, 1f)]
         private float attackRecoverNormalizedTime = 0.3f;
         [SerializeField, Header("攻击可取消到格挡时间(0-1)")] [Range(0f, 1f)]
@@ -552,6 +554,16 @@ namespace UGG.Combat
             }
 
             return base.GetAttackDamageMultiplier();
+        }
+
+        protected override float GetAttackDamage(string hitName)
+        {
+            if (hitName == "ExecuteHit")
+            {
+                return executeAttackDamage;
+            }
+
+            return base.GetAttackDamage(hitName);
         }
     }
 }

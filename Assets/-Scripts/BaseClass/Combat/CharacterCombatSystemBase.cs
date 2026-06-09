@@ -122,7 +122,7 @@ namespace UGG.Combat
                 return;
             }
 
-            float damage = GetCurrentAttackDamage();
+            float damage = GetAttackDamage(hitName);
 
             for (int i = 0; i < counts; i++)
             {
@@ -156,6 +156,11 @@ namespace UGG.Combat
             }
 
             return baseDamage * GetAttackDamageMultiplier();
+        }
+
+        protected virtual float GetAttackDamage(string hitName)
+        {
+            return GetCurrentAttackDamage();
         }
 
         protected virtual float GetAttackDamageMultiplier()
